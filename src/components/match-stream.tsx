@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Match } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Maximize, Minimize, RefreshCw, Volume2, VolumeX, Loader2, PlayCircle, RotateCw } from 'lucide-react';
+import { ArrowLeft, Maximize, Minimize, RefreshCw, Volume2, VolumeX, PlayCircle, RotateCw } from 'lucide-react';
 
 interface MatchStreamProps {
   match: Match;
@@ -28,7 +28,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     match.stream_url?.replace('beIN_Sports2_HD-ar', 'beIN_Sports1_HD-ar') || '',
     match.stream_url?.replace('beIN_Sports2_HD-ar', 'beIN_Sports3_HD-ar') || '',
     // Add direct embed fallback
-    `https://player.castr.com/live_${match.team_a?.name?.toLowerCase()}_${match.team_b?.name?.toLowerCase()}`
+    `https://player.castr.com/live_${match.team_a?.name?.toLowerCase().replace(/\s+/g, '_')}_${match.team_b?.name?.toLowerCase().replace(/\s+/g, '_')}`
   ].filter(Boolean);
 
   useEffect(() => {
@@ -42,17 +42,34 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     startLoadingAnimation();
     
     // Set a timeout to consider the stream loaded after a certain time
-    // This helps with streams that don't trigger onLoad events properly
     loadingTimeoutRef.current = setTimeout(() => {
       setIsLoading(false);
       setLoadingProgress(100);
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
-    }, 3000);
+    }, 8000); // Longer timeout for slower connections
+    
+    // Listen for messages from the iframe
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data === 'videoPlaying') {
+        setIsLoading(false);
+        setStreamError(false);
+        setLoadingProgress(100);
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+        }
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
     
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('message', handleMessage);
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
       }
@@ -110,7 +127,9 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
       const separator = currentSrc.includes('?') ? '&' : '?';
       const refreshedSrc = `${currentSrc}${separator}_t=${timestamp}`;
       
-      iframeRef.current.src = refreshedSrc;
+      // For our custom player, we need to reload the entire iframe
+      const playerUrl = `/stream-player.html?url=${encodeURIComponent(refreshedSrc)}&muted=${isMuted}`;
+      iframeRef.current.src = playerUrl;
       
       // Set a backup timer in case onLoad doesn't fire
       if (loadingTimeoutRef.current) {
@@ -122,7 +141,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
         }
-      }, 3000);
+      }, 8000);
     }
   };
 
@@ -135,14 +154,8 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
   };
 
   const handleIframeLoad = () => {
-    setIsLoading(false);
-    setLoadingProgress(100);
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
+    // We'll rely on the message event for more accurate loading state
+    console.log("Iframe loaded");
   };
 
   const handleIframeError = () => {
@@ -153,10 +166,9 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     }
   };
 
-  // Use direct iframe embed for better compatibility
+  // Get current stream URL
   const currentStreamUrl = streamSources[currentSourceIndex];
-  const isM3u8 = currentStreamUrl.includes('.m3u8');
-
+  
   return (
     <div className="w-full h-full flex flex-col bg-black">
       <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-900 to-gray-800 relative">
@@ -249,31 +261,15 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         
         {currentStreamUrl && (
           <div className="w-full h-full flex items-center justify-center bg-black">
-            {isM3u8 ? (
-              // For HLS streams, use a direct video element with HLS.js
-              <div className="w-full h-full" id="hlsPlayer">
-                <iframe
-                  ref={iframeRef}
-                  src={`/stream-player.html?url=${encodeURIComponent(currentStreamUrl)}&muted=${isMuted}`}
-                  className="w-full h-full border-0"
-                  allow="autoplay; fullscreen"
-                  allowFullScreen
-                  onLoad={handleIframeLoad}
-                  onError={handleIframeError}
-                ></iframe>
-              </div>
-            ) : (
-              // For direct embed URLs
-              <iframe
-                ref={iframeRef}
-                src={currentStreamUrl}
-                className="w-full h-full border-0"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-                onLoad={handleIframeLoad}
-                onError={handleIframeError}
-              ></iframe>
-            )}
+            <iframe
+              ref={iframeRef}
+              src={`/stream-player.html?url=${encodeURIComponent(currentStreamUrl)}&muted=${isMuted}`}
+              className="w-full h-full border-0"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+              onLoad={handleIframeLoad}
+              onError={handleIframeError}
+            ></iframe>
           </div>
         )}
       </div>

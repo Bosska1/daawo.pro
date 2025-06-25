@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stream Player</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     body, html {
       margin: 0;
@@ -415,13 +415,52 @@
     // Set initial muted state
     video.muted = muted;
     
-    // Alternative stream sources
-    let alternativeSources = [
-      streamUrl,
-      streamUrl.replace('beIN_Sports1_HD-ar', 'beIN_Sports2_HD-ar'),
-      streamUrl.replace('beIN_Sports1_HD-ar', 'beIN_Sports3_HD-ar'),
-      streamUrl.replace('beIN_Sports1_HD-ar', 'beIN_Sports4_HD-ar')
-    ].filter(Boolean);
+    // Alternative stream sources - create variations of the URL
+    let alternativeSources = [];
+    
+    if (streamUrl) {
+      // Original URL
+      alternativeSources.push(streamUrl);
+      
+      // Create variations by changing parts of the URL
+      if (streamUrl.includes('beIN_Sports')) {
+        for (let i = 1; i <= 4; i++) {
+          const newUrl = streamUrl.replace(/beIN_Sports\d+_HD/, `beIN_Sports${i}_HD`);
+          if (newUrl !== streamUrl) {
+            alternativeSources.push(newUrl);
+          }
+        }
+      } else {
+        // Add some generic alternatives if not a beIN Sports URL
+        const urlObj = new URL(streamUrl);
+        const pathParts = urlObj.pathname.split('/');
+        
+        // Try adding variations
+        if (pathParts.length > 1) {
+          const lastPart = pathParts[pathParts.length - 1];
+          
+          // Try a few variations
+          for (let i = 1; i <= 3; i++) {
+            const newLastPart = lastPart.replace(/\d+/, match => {
+              const num = parseInt(match);
+              return isNaN(num) ? match : (num + i);
+            });
+            
+            if (newLastPart !== lastPart) {
+              pathParts[pathParts.length - 1] = newLastPart;
+              const newPath = pathParts.join('/');
+              urlObj.pathname = newPath;
+              alternativeSources.push(urlObj.toString());
+            }
+          }
+        }
+      }
+    }
+    
+    // Ensure we have at least 4 sources (duplicating if necessary)
+    while (alternativeSources.length < 4 && alternativeSources.length > 0) {
+      alternativeSources.push(alternativeSources[0]);
+    }
     
     // Add timestamp to each URL to prevent caching
     alternativeSources = alternativeSources.map(url => {
@@ -445,6 +484,25 @@
     const MAX_RETRIES = 3;
     let progressInterval = null;
     let loadingTimeout = null;
+    let hlsConfig = {
+      maxBufferLength: 30,
+      maxMaxBufferLength: 60,
+      enableWorker: true,
+      lowLatencyMode: true,
+      backBufferLength: 90,
+      fragLoadingTimeOut: 10000, // Reduced timeout for faster error detection
+      manifestLoadingTimeOut: 10000, // Reduced timeout for faster error detection
+      levelLoadingTimeOut: 10000, // Reduced timeout for faster error detection
+      startLevel: 0, // Start with lowest quality for faster initial load
+      abrEwmaDefaultEstimate: 500000, // Lower initial bandwidth estimate
+      abrEwmaFastLive: 3.0, // Faster ABR algorithm for live streams
+      testBandwidth: false, // Skip initial bandwidth test
+      progressive: true, // Enable progressive loading
+      xhrSetup: function(xhr) {
+        xhr.setRequestHeader('Cache-Control', 'no-cache');
+        xhr.setRequestHeader('Pragma', 'no-cache');
+      }
+    };
     
     // Listen for mute toggle messages from parent
     window.addEventListener('message', function(event) {
@@ -455,12 +513,12 @@
       }
     });
     
-    // Function to show loading indicator
+    // Function to show loading indicator with faster progress
     function showLoading() {
       loadingContainer.style.display = 'flex';
       errorContainer.style.display = 'none';
       
-      // Start progress animation
+      // Start progress animation - faster progress for better perceived performance
       let progress = 0;
       loadingProgress.textContent = '0%';
       
@@ -469,15 +527,15 @@
       }
       
       progressInterval = setInterval(() => {
-        progress += Math.random() * 3;
+        progress += Math.random() * 5; // Faster progress
         if (progress > 99) {
           progress = 99;
           clearInterval(progressInterval);
         }
         loadingProgress.textContent = `${Math.round(progress)}%`;
-      }, 200);
+      }, 100); // Update more frequently
       
-      // Set a timeout to hide loading after 10 seconds even if not loaded
+      // Set a shorter timeout (5 seconds instead of 10)
       if (loadingTimeout) {
         clearTimeout(loadingTimeout);
       }
@@ -487,7 +545,12 @@
         if (progressInterval) {
           clearInterval(progressInterval);
         }
-      }, 10000);
+        
+        // If still loading after timeout, try next source automatically
+        if (!video.readyState || video.readyState < 3) {
+          tryNextSource();
+        }
+      }, 5000); // Reduced from 10000 to 5000
     }
     
     // Function to hide loading indicator
@@ -544,7 +607,7 @@
       loadStream(alternativeSources[currentSourceIndex]);
     }
     
-    // Function to load the stream
+    // Function to load the stream with optimizations for faster loading
     function loadStream(url) {
       showLoading();
       
@@ -563,21 +626,47 @@
       video.src = "";
       video.load();
       
-      if (Hls.isSupported()) {
-        window.hls = new Hls({
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 90,
-          fragLoadingTimeOut: 20000,
-          manifestLoadingTimeOut: 20000,
-          levelLoadingTimeOut: 20000,
-          xhrSetup: function(xhr) {
-            xhr.setRequestHeader('Cache-Control', 'no-cache');
-            xhr.setRequestHeader('Pragma', 'no-cache');
+      // Try direct playback first for faster loading
+      try {
+        video.src = url;
+        video.muted = true; // Mute initially to avoid autoplay restrictions
+        
+        // Set a short timeout to check if direct playback works
+        setTimeout(() => {
+          const playPromise = video.play();
+          
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              // Direct playback successful
+              video.muted = muted; // Restore original mute state
+              hideLoading();
+              updateMuteButton();
+              
+              // Notify parent when video starts playing
+              try {
+                window.parent.postMessage('videoPlaying', '*');
+              } catch (e) {
+                console.error('Could not send playing message to parent:', e);
+              }
+            }).catch(e => {
+              // Direct playback failed, try HLS
+              loadWithHLS(url);
+            });
+          } else {
+            // Play promise not supported, try HLS
+            loadWithHLS(url);
           }
-        });
+        }, 500);
+      } catch (e) {
+        // Error with direct playback, try HLS
+        loadWithHLS(url);
+      }
+    }
+    
+    // Function to load stream using HLS.js
+    function loadWithHLS(url) {
+      if (Hls.isSupported()) {
+        window.hls = new Hls(hlsConfig);
         
         window.hls.loadSource(url);
         window.hls.attachMedia(video);
@@ -624,7 +713,8 @@
                 window.hls.recoverMediaError();
                 break;
               default:
-                showError("Stream loading error: " + (data.details || "unknown error"));
+                // Try next source immediately on fatal error
+                tryNextSource();
                 break;
             }
           }
@@ -648,13 +738,8 @@
         });
         
         video.addEventListener('error', function() {
-          showError("Stream loading error: " + (video.error ? video.error.message : "unknown error"));
-          
-          retryCount++;
-          if (retryCount >= MAX_RETRIES) {
-            retryCount = 0;
-            tryNextSource();
-          }
+          // Try next source immediately on error
+          tryNextSource();
         });
       } else {
         showError("Your browser doesn't support HLS playback");
@@ -674,7 +759,11 @@
     }
     
     // Initialize stream
-    loadStream(alternativeSources[currentSourceIndex]);
+    if (alternativeSources.length > 0) {
+      loadStream(alternativeSources[currentSourceIndex]);
+    } else {
+      showError("No stream URL provided");
+    }
     
     // Notify parent when video starts playing
     video.addEventListener('playing', function() {
@@ -690,7 +779,10 @@
     video.addEventListener('error', function() {
       const errorCode = video.error ? video.error.code : 0;
       const errorMessage = video.error ? video.error.message : "Unknown error";
-      showError(`Video error (${errorCode}): ${errorMessage}`);
+      console.error(`Video error (${errorCode}): ${errorMessage}`);
+      
+      // Try next source automatically on error
+      tryNextSource();
     });
     
     // Custom controls functionality

@@ -14,47 +14,42 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [streamError, setStreamError] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [streamSources, setStreamSources] = useState<string[]>([]);
-  const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
+  
+  // Define multiple stream sources for better reliability
+  const streamSources = [
+    match.stream_url || '',
+    // Alternative sources with different parameters
+    match.stream_url?.replace('beIN_Sports2_HD-ar', 'beIN_Sports1_HD-ar') || '',
+    match.stream_url?.replace('beIN_Sports2_HD-ar', 'beIN_Sports3_HD-ar') || '',
+    // Add direct embed fallback
+    `https://player.castr.com/live_${match.team_a?.name?.toLowerCase()}_${match.team_b?.name?.toLowerCase()}`
+  ].filter(Boolean);
 
   useEffect(() => {
-    // Initialize with the primary stream URL and add fallback URLs if needed
-    const sources = [match.stream_url || ''];
-    // Add fallback streams (in a real app, these would come from the database)
-    if (match.stream_url) {
-      // These are example fallbacks - in a real app you'd have actual alternative sources
-      const alternativeStreams = [
-        match.stream_url.replace('beIN_Sports2_HD-ar', 'beIN_Sports1_HD-ar'),
-        match.stream_url.replace('beIN_Sports2_HD-ar', 'beIN_Sports3_HD-ar')
-      ];
-      setStreamSources([...sources, ...alternativeStreams]);
-    } else {
-      setStreamSources(sources);
-    }
-
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     
-    // Set loading timeout - shorter for faster loading perception
+    // Start loading animation
+    startLoadingAnimation();
+    
+    // Set a timeout to consider the stream loaded after a certain time
+    // This helps with streams that don't trigger onLoad events properly
     loadingTimeoutRef.current = setTimeout(() => {
       setIsLoading(false);
-    }, 1200);
-    
-    // Simulate loading progress
-    progressIntervalRef.current = setInterval(() => {
-      setLoadingProgress(prev => {
-        const next = prev + (100 - prev) * 0.1;
-        return Math.min(next, 99);
-      });
-    }, 100);
+      setLoadingProgress(100);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    }, 3000);
     
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -65,7 +60,21 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [match.stream_url]);
+  }, [match.stream_url, currentSourceIndex]);
+
+  const startLoadingAnimation = () => {
+    setLoadingProgress(0);
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    
+    progressIntervalRef.current = setInterval(() => {
+      setLoadingProgress(prev => {
+        const next = prev + (100 - prev) * 0.15;
+        return Math.min(next, 99);
+      });
+    }, 100);
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement && containerRef.current) {
@@ -79,40 +88,29 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
+    if (iframeRef.current) {
+      // Try to send mute message to iframe
+      try {
+        iframeRef.current.contentWindow?.postMessage('toggleMute', '*');
+      } catch (e) {
+        console.log('Could not send mute message to iframe');
+      }
     }
   };
 
   const handleRefresh = () => {
     setIsLoading(true);
     setStreamError(false);
-    setLoadingProgress(0);
+    startLoadingAnimation();
     
-    // Start progress animation again
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-    progressIntervalRef.current = setInterval(() => {
-      setLoadingProgress(prev => {
-        const next = prev + (100 - prev) * 0.1;
-        return Math.min(next, 99);
-      });
-    }, 100);
-    
-    // Force video reload with a more efficient approach
-    if (videoRef.current && streamSources[currentSourceIndex]) {
-      const video = videoRef.current;
-      const currentSrc = streamSources[currentSourceIndex];
-      
-      // Add a timestamp parameter to force reload and bypass cache
+    // Force iframe reload with timestamp to bypass cache
+    if (iframeRef.current) {
       const timestamp = new Date().getTime();
+      const currentSrc = streamSources[currentSourceIndex];
       const separator = currentSrc.includes('?') ? '&' : '?';
       const refreshedSrc = `${currentSrc}${separator}_t=${timestamp}`;
       
-      video.src = refreshedSrc;
-      video.load();
-      video.play().catch(e => console.log('Playback error:', e));
+      iframeRef.current.src = refreshedSrc;
       
       // Set a backup timer in case onLoad doesn't fire
       if (loadingTimeoutRef.current) {
@@ -124,7 +122,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
         }
-      }, 1200);
+      }, 3000);
     }
   };
 
@@ -133,32 +131,10 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     setCurrentSourceIndex(nextIndex);
     setIsLoading(true);
     setStreamError(false);
-    setLoadingProgress(0);
-    
-    // Start progress animation again
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-    progressIntervalRef.current = setInterval(() => {
-      setLoadingProgress(prev => {
-        const next = prev + (100 - prev) * 0.1;
-        return Math.min(next, 99);
-      });
-    }, 100);
-    
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-    }
-    loadingTimeoutRef.current = setTimeout(() => {
-      setIsLoading(false);
-      setLoadingProgress(100);
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-    }, 1200);
+    startLoadingAnimation();
   };
 
-  const handleVideoLoad = () => {
+  const handleIframeLoad = () => {
     setIsLoading(false);
     setLoadingProgress(100);
     if (loadingTimeoutRef.current) {
@@ -169,14 +145,17 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     }
   };
 
-  const handleVideoError = () => {
+  const handleIframeError = () => {
     setStreamError(true);
     setIsLoading(false);
-    setLoadingProgress(100);
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
   };
+
+  // Use direct iframe embed for better compatibility
+  const currentStreamUrl = streamSources[currentSourceIndex];
+  const isM3u8 = currentStreamUrl.includes('.m3u8');
 
   return (
     <div className="w-full h-full flex flex-col bg-black">
@@ -268,25 +247,33 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
           </div>
         )}
         
-        {streamSources[currentSourceIndex] ? (
+        {currentStreamUrl && (
           <div className="w-full h-full flex items-center justify-center bg-black">
-            <video 
-              ref={videoRef}
-              className="w-full h-full max-h-full"
-              autoPlay
-              controls
-              playsInline
-              muted={isMuted}
-              onLoadedData={handleVideoLoad}
-              onError={handleVideoError}
-            >
-              <source src={streamSources[currentSourceIndex]} type="application/x-mpegURL" />
-              Your browser does not support HTML5 video.
-            </video>
-          </div>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-gray-400">Stream not available</p>
+            {isM3u8 ? (
+              // For HLS streams, use a direct video element with HLS.js
+              <div className="w-full h-full" id="hlsPlayer">
+                <iframe
+                  ref={iframeRef}
+                  src={`/stream-player.html?url=${encodeURIComponent(currentStreamUrl)}&muted=${isMuted}`}
+                  className="w-full h-full border-0"
+                  allow="autoplay; fullscreen"
+                  allowFullScreen
+                  onLoad={handleIframeLoad}
+                  onError={handleIframeError}
+                ></iframe>
+              </div>
+            ) : (
+              // For direct embed URLs
+              <iframe
+                ref={iframeRef}
+                src={currentStreamUrl}
+                className="w-full h-full border-0"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+              ></iframe>
+            )}
           </div>
         )}
       </div>

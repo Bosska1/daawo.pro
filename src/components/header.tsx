@@ -37,16 +37,17 @@ export function Header() {
     <header className={`sticky top-0 z-20 w-full transition-all duration-300 ${
       isScrolled ? 'bg-gray-950/90 backdrop-blur-md shadow-md' : 'bg-gray-950'
     }`}>
-      <div className="container mx-auto px-4">
+      <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none"></div>
+      <div className="container mx-auto px-4 relative z-10">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-green-400 bg-clip-text text-transparent">
+            <span className="text-2xl font-bold gradient-text">
               StreamGoal
             </span>
           </Link>
 
           <div className="hidden md:flex items-center space-x-6">
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-gray-400 glass px-3 py-1 rounded-full">
               Watch Live Football — Free & Fast!
             </div>
             
@@ -61,7 +62,7 @@ export function Header() {
               </Button>
               
               <Link to="/tv">
-                <Button variant="outline" size="sm">
+                <Button variant="glow" size="sm" className="animate-pulse-glow">
                   Live TV
                 </Button>
               </Link>
@@ -110,7 +111,7 @@ export function Header() {
         
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-3 border-t border-gray-800">
+          <div className="md:hidden py-3 border-t border-gray-800 glass rounded-b-lg">
             <nav className="flex flex-col space-y-3">
               <Link 
                 to="/" 
@@ -146,6 +147,13 @@ export function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Live TV
+              </Link>
+              <Link 
+                to="/favorites" 
+                className="px-3 py-2 rounded-md hover:bg-gray-900 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Favorites
               </Link>
             </nav>
           </div>

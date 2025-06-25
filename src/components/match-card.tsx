@@ -6,6 +6,7 @@ import { Match } from '@/lib/supabase';
 import { formatDate, formatTime, formatMatchTime } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { Play, Clock, Calendar, Trophy, ExternalLink } from 'lucide-react';
+import { FavoritesButton } from '@/components/favorites-button';
 
 interface MatchCardProps {
   match: Match;
@@ -148,6 +149,9 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
           </Button>
         )}
       </CardFooter>
+      
+      {/* Favorites Button */}
+      <FavoritesButton match={match} />
       
       {/* Live Indicator */}
       {match.status === 'live' && (

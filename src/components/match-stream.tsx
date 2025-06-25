@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Match } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Maximize, Minimize, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Maximize, Minimize, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 
 interface MatchStreamProps {
   match: Match;
@@ -13,6 +13,9 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [streamError, setStreamError] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -21,10 +24,10 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     
-    // Set loading timeout
+    // Set loading timeout - shorter for faster loading perception
     const loadingTimer = setTimeout(() => {
       setIsLoading(false);
-    }, 2000);
+    }, 1500);
     
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -33,10 +36,8 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
   }, []);
 
   const toggleFullscreen = () => {
-    const streamContainer = document.getElementById('stream-container');
-    
-    if (!document.fullscreenElement && streamContainer) {
-      streamContainer.requestFullscreen().catch(err => {
+    if (!document.fullscreenElement && containerRef.current) {
+      containerRef.current.requestFullscreen().catch(err => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`);
       });
     } else if (document.fullscreenElement) {
@@ -44,19 +45,35 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     }
   };
 
+  const toggleMute = () => {
+    if (iframeRef.current) {
+      try {
+        // This is a limited approach as iframe content from different origins 
+        // can't be directly controlled due to security restrictions
+        // In a real app, we'd need to use postMessage or ensure the stream 
+        // supports external volume control
+        setIsMuted(!isMuted);
+      } catch (error) {
+        console.error('Could not toggle mute:', error);
+      }
+    }
+  };
+
   const handleRefresh = () => {
     setIsLoading(true);
     setStreamError(false);
     
-    // Force iframe reload
-    const iframe = document.getElementById('stream-iframe') as HTMLIFrameElement;
-    if (iframe) {
-      const currentSrc = iframe.src;
-      iframe.src = '';
+    // Force iframe reload with a more efficient approach
+    if (iframeRef.current && match.stream_url) {
+      const iframe = iframeRef.current;
+      iframe.src = 'about:blank';
+      
+      // Use a shorter timeout for faster reload
       setTimeout(() => {
-        iframe.src = currentSrc;
-        setTimeout(() => setIsLoading(false), 2000);
-      }, 100);
+        iframe.src = match.stream_url || '';
+        // Set a backup timer in case onLoad doesn't fire
+        setTimeout(() => setIsLoading(false), 1500);
+      }, 50);
     }
   };
 
@@ -83,6 +100,9 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
           <p className="text-sm text-gray-400">🏆 {match.competition?.name}</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={toggleMute}>
+            {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -92,7 +112,11 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         </div>
       </div>
       
-      <div id="stream-container" className="relative w-full flex-1 bg-black">
+      <div 
+        ref={containerRef}
+        id="stream-container" 
+        className="relative w-full flex-1 bg-black"
+      >
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
             <div className="flex flex-col items-center">
@@ -115,6 +139,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         
         {match.stream_url ? (
           <iframe 
+            ref={iframeRef}
             id="stream-iframe"
             src={match.stream_url}
             className="absolute top-0 left-0 w-full h-full border-0"

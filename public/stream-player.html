@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stream Player</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+    }
+    #videoPlayer {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .error-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 10;
+    }
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: #f43f5e;
+    }
+    .error-message {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    .error-button {
+      background-color: #38ef7d;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <video id="videoPlayer" controls autoplay playsinline></video>
+  <div id="errorContainer" class="error-container" style="display: none;">
+    <div class="error-icon">⚠️</div>
+    <div class="error-message">Stream loading error</div>
+    <button class="error-button" onclick="retryStream()">Try Again</button>
+  </div>
+
+  <script>
+    // Parse URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const streamUrl = urlParams.get('url');
+    const muted = urlParams.get('muted') === 'true';
+    
+    const video = document.getElementById('videoPlayer');
+    const errorContainer = document.getElementById('errorContainer');
+    
+    // Set initial muted state
+    video.muted = muted;
+    
+    // Listen for mute toggle messages from parent
+    window.addEventListener('message', function(event) {
+      if (event.data === 'toggleMute') {
+        video.muted = !video.muted;
+      }
+    });
+    
+    function loadStream() {
+      if (!streamUrl) {
+        showError("No stream URL provided");
+        return;
+      }
+      
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 90
+        });
+        
+        hls.loadSource(streamUrl);
+        hls.attachMedia(video);
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          video.play().catch(e => console.log('Playback error:', e));
+        });
+        
+        hls.on(Hls.Events.ERROR, function(event, data) {
+          if (data.fatal) {
+            console.error('HLS error:', data);
+            showError("Stream loading error");
+          }
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // For Safari which has native HLS support
+        video.src = streamUrl;
+        video.addEventListener('error', function() {
+          showError("Stream loading error");
+        });
+        video.play().catch(e => {
+          console.log('Playback error:', e);
+          showError("Stream loading error");
+        });
+      } else {
+        showError("Your browser doesn't support HLS playback");
+      }
+    }
+    
+    function showError(message) {
+      errorContainer.querySelector('.error-message').textContent = message || "Stream loading error";
+      errorContainer.style.display = 'flex';
+    }
+    
+    function retryStream() {
+      errorContainer.style.display = 'none';
+      // Add timestamp to force reload
+      const timestamp = new Date().getTime();
+      const separator = streamUrl.includes('?') ? '&' : '?';
+      const refreshedUrl = `${streamUrl}${separator}_t=${timestamp}`;
+      
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(refreshedUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          video.play().catch(e => console.log('Playback error:', e));
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = refreshedUrl;
+        video.play().catch(e => console.log('Playback error:', e));
+      }
+    }
+    
+    // Initialize stream
+    loadStream();
+    
+    // Notify parent when video starts playing
+    video.addEventListener('playing', function() {
+      window.parent.postMessage('videoPlaying', '*');
+    });
+  </script>
+</body>
+</html>

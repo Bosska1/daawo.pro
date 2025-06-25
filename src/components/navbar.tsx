@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Home, PlayCircle, Clock, CheckCircle } from 'lucide-react';
+import { Home, PlayCircle, Clock, CheckCircle, Tv } from 'lucide-react';
 
 export function Navbar() {
   const location = useLocation();
@@ -34,6 +34,12 @@ export function Navbar() {
             <Link to="/finished" className="flex flex-col items-center py-1">
               <CheckCircle className="h-5 w-5" />
               <span className="text-xs mt-1">Finished</span>
+            </Link>
+          </TabsTrigger>
+          <TabsTrigger value="/tv" asChild className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary">
+            <Link to="/tv" className="flex flex-col items-center py-1">
+              <Tv className="h-5 w-5" />
+              <span className="text-xs mt-1">TV</span>
             </Link>
           </TabsTrigger>
         </TabsList>

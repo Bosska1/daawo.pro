@@ -175,3 +175,96 @@ iframe {
 .ad-content button:hover {
   background-color: rgba(56, 239, 125, 0.8);
 }
+
+/* Professional UI improvements */
+.pro-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(23, 32, 52, 0.9), rgba(17, 24, 39, 0.95));
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.pro-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 239, 125, 0.3);
+  border-color: rgba(56, 239, 125, 0.3);
+}
+
+.pro-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.pro-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: all 0.5s ease;
+}
+
+.pro-button:hover::before {
+  left: 100%;
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, 
+    rgba(31, 41, 55, 0.1) 0%, 
+    rgba(31, 41, 55, 0.2) 25%, 
+    rgba(31, 41, 55, 0.1) 50%,
+    rgba(31, 41, 55, 0.2) 75%,
+    rgba(31, 41, 55, 0.1) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Responsive improvements */
+@media (max-width: 640px) {
+  .mobile-optimized {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Improved form elements */
+.form-input-pro {
+  @apply bg-gray-900 border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200;
+}
+
+.form-select-pro {
+  @apply bg-gray-900 border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200;
+}
+
+.form-button-pro {
+  @apply bg-gradient-to-r from-blue-600 to-primary hover:from-blue-700 hover:to-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/50;
+}

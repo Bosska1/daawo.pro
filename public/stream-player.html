@@ -1,10 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Advanced Stream Player</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <title>Stream Player</title>
   <style>
     body, html {
       margin: 0;
@@ -24,11 +24,10 @@
       background-color: #000;
     }
     
-    #videoPlayer {
+    iframe {
       width: 100%;
       height: 100%;
-      object-fit: contain;
-      background-color: #000;
+      border: none;
     }
     
     .error-container {
@@ -145,41 +144,6 @@
       100% { transform: rotate(360deg); }
     }
     
-    /* Controls */
-    .controls {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-      padding: 20px 15px 15px;
-      display: flex;
-      align-items: center;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    
-    #videoContainer:hover .controls {
-      opacity: 1;
-    }
-    
-    .control-button {
-      background: none;
-      border: none;
-      color: white;
-      cursor: pointer;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 5px;
-    }
-    
-    .control-button:hover {
-      color: #38ef7d;
-    }
-    
     .message {
       position: absolute;
       top: 20px;
@@ -197,47 +161,14 @@
     .message.show {
       opacity: 1;
     }
-    
-    .quality-selector {
-      position: absolute;
-      bottom: 70px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(0,0,0,0.8);
-      padding: 8px;
-      border-radius: 4px;
-      display: none;
-      z-index: 20;
-    }
-    
-    .quality-option {
-      padding: 8px 12px;
-      cursor: pointer;
-      border-radius: 2px;
-    }
-    
-    .quality-option:hover {
-      background-color: rgba(56, 239, 125, 0.3);
-    }
   </style>
 </head>
 <body>
   <div id="videoContainer">
-    <video id="videoPlayer" playsinline autoplay></video>
-    
-    <div class="controls">
-      <button id="playPauseBtn" class="control-button">▶️</button>
-      <button id="muteBtn" class="control-button">🔊</button>
-      <button id="qualityBtn" class="control-button">⚙️</button>
-      <button id="refreshBtn" class="control-button">🔄</button>
-      <button id="fullscreenBtn" class="control-button">⛶</button>
-    </div>
-    
-    <div id="message" class="message"></div>
-    
-    <div class="quality-selector" id="qualitySelector"></div>
+    <iframe id="streamFrame" allowfullscreen></iframe>
   </div>
   
+  <!-- Loading indicator -->
   <div id="loadingContainer" class="loading-container">
     <div class="spinner">
       <div class="spinner-ring"></div>
@@ -248,437 +179,88 @@
     <div class="loading-progress" id="loadingProgress">0%</div>
   </div>
   
+  <!-- Error display -->
   <div id="errorContainer" class="error-container" style="display: none;">
     <div class="error-icon">⚠️</div>
     <div class="error-message" id="errorMessage">Unable to load the stream</div>
     <button class="error-button" id="retryBtn">Try Again</button>
     <button class="error-button" id="nextSourceBtn" style="margin-top: 10px;">Try Another Source</button>
   </div>
+  
+  <!-- Message display -->
+  <div id="message" class="message"></div>
 
   <script>
     // DOM elements
-    const video = document.getElementById('videoPlayer');
+    const streamFrame = document.getElementById('streamFrame');
     const loadingContainer = document.getElementById('loadingContainer');
     const loadingProgress = document.getElementById('loadingProgress');
     const errorContainer = document.getElementById('errorContainer');
     const errorMessage = document.getElementById('errorMessage');
     const retryBtn = document.getElementById('retryBtn');
     const nextSourceBtn = document.getElementById('nextSourceBtn');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const muteBtn = document.getElementById('muteBtn');
-    const qualityBtn = document.getElementById('qualityBtn');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
     const messageEl = document.getElementById('message');
-    const videoContainer = document.getElementById('videoContainer');
-    const qualitySelector = document.getElementById('qualitySelector');
     
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     let streamUrl = urlParams.get('url');
-    const initialMuted = urlParams.get('muted') === 'true';
     
-    // Player state
-    let hls;
+    // Fallback streams if the main one fails
+    const fallbackStreams = [
+      'https://www.youtube.com/embed/live_stream?channel=UCQfwfsi5VrQ8yKZ-UWmAEFg&autoplay=1',
+      'https://www.youtube.com/embed/live_stream?channel=UCNL1OpuVr6OU-FF9RWVFJFw&autoplay=1',
+      'https://www.youtube.com/embed/live_stream?channel=UCt4t-jeY85JegMlZ-E5UWtA&autoplay=1'
+    ];
+    
     let currentSourceIndex = 0;
-    let retryCount = 0;
-    const MAX_RETRIES = 3;
     let sources = [];
-    let stallTimer;
-    let progressInterval;
     
-    // Initialize player
-    function initPlayer() {
-      video.muted = initialMuted;
-      updateMuteButton();
-      
-      if (streamUrl) {
-        sources = getSources(streamUrl);
-        if (sources.length > 0) {
-          loadStream(sources[currentSourceIndex]);
-        } else {
-          showError('No valid stream URL provided');
-        }
-      } else {
-        showError('No stream URL provided');
-      }
-      
-      setupEventListeners();
-    }
-    
-    // Get optimized list of sources
-    function getSources(originalUrl) {
-      const sources = [];
-      const timestamp = Date.now();
-      
-      // 1. Original URL with timestamp
-      sources.push(addTimestamp(originalUrl, timestamp));
-      
-      // 2. Common HLS variants
-      const hlsVariants = [
-        originalUrl.replace('.m3u8', '_hd.m3u8'),
-        originalUrl.replace('.m3u8', '_sd.m3u8'),
-        originalUrl.replace('.m3u8', '/index.m3u8'),
-        originalUrl.replace('.m3u8', '/playlist.m3u8'),
-        originalUrl.replace('.m3u8', '/master.m3u8')
-      ];
-      
-      // 3. Try different protocols
-      const protocolVariants = [
-        originalUrl.replace('http://', 'https://'),
-        originalUrl.replace('https://', 'http://')
-      ];
-      
-      // 4. Channel variants for known providers
-      if (originalUrl.includes('beIN_Sports')) {
-        for (let i = 1; i <= 3; i++) {
-          sources.push(addTimestamp(originalUrl.replace(/beIN_Sports\d+/, `beIN_Sports${i}`), timestamp));
-        }
-      } else if (originalUrl.includes('ASAL_MOVIES')) {
-        const variations = [
-          originalUrl.replace('ASAL_MOVIES', 'ASAL_SPORTS'),
-          originalUrl.replace('ASAL_MOVIES', 'ASAL_HD'),
-          originalUrl.replace('ASAL_MOVIES', 'ASAL_PREMIUM')
-        ];
-        variations.forEach(url => sources.push(addTimestamp(url, timestamp)));
-      }
-      
-      // Combine all variants and filter out duplicates/invalids
-      return [...new Set([
-        originalUrl,
-        ...hlsVariants,
-        ...protocolVariants,
-        ...sources
-      ].filter(url => url && isValidUrl(url)))];
-    }
-    
-    // Validate URL
-    function isValidUrl(url) {
-      try {
-        new URL(url);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    
-    // Add timestamp to URL
-    function addTimestamp(url, timestamp) {
+    // Function to add timestamp to URL
+    function addTimestamp(url) {
       if (!url) return url;
       
+      const timestamp = Date.now();
       const separator = url.includes('?') ? '&' : '?';
       return `${url}${separator}_t=${timestamp}`;
     }
     
-    // Check if URL is a TS file
-    function isTsFile(url) {
-      return url && url.toLowerCase().endsWith('.ts');
-    }
-    
-    // Setup event listeners
-    function setupEventListeners() {
-      // Video events
-      video.addEventListener('playing', function() {
-        clearTimeout(stallTimer);
-        hideLoading();
-        updatePlayPauseButton();
-        notifyParentPlaying();
-      });
-      
-      video.addEventListener('pause', updatePlayPauseButton);
-      
-      video.addEventListener('waiting', () => {
-        stallTimer = setTimeout(() => {
-          showMessage('Stream stalled, trying to recover...');
-          if (video.buffered.length > 0) {
-            video.currentTime = Math.max(0, video.currentTime - 0.5);
-          }
-          retryCurrentSource();
-        }, 3000);
-      });
-      
-      video.addEventListener('error', function() {
-        console.error('Video error:', video.error);
-        tryNextSource();
-      });
-      
-      // Control buttons
-      playPauseBtn.addEventListener('click', togglePlayPause);
-      muteBtn.addEventListener('click', toggleMute);
-      qualityBtn.addEventListener('click', toggleQualitySelector);
-      refreshBtn.addEventListener('click', retryCurrentSource);
-      fullscreenBtn.addEventListener('click', toggleFullscreen);
-      
-      // Error buttons
-      retryBtn.addEventListener('click', retryCurrentSource);
-      nextSourceBtn.addEventListener('click', tryNextSource);
-      
-      // Parent window communication
-      window.addEventListener('message', function(event) {
-        if (event.data === 'toggleMute') {
-          toggleMute();
-        }
-      });
-      
-      // Double click for fullscreen
-      videoContainer.addEventListener('dblclick', toggleFullscreen);
-    }
-    
-    // Load stream with appropriate method
-    function loadStream(url) {
-      if (!url) {
-        showError('No stream URL provided');
-        return;
-      }
-      
-      showLoading();
-      
-      // Clean up previous instance
-      if (hls) {
-        hls.destroy();
-        hls = null;
-      }
-      
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-      
-      if (isTsFile(url)) {
-        loadDirectTs(url);
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        loadNativeHls(url);
-      } else if (Hls.isSupported()) {
-        setupHlsJs(url);
-      } else {
-        showError('Your browser does not support HLS playback');
-      }
-    }
-    
-    // Load TS file directly
-    function loadDirectTs(url) {
-      if (window.MediaSource) {
-        const mediaSource = new MediaSource();
-        video.src = URL.createObjectURL(mediaSource);
-        
-        mediaSource.addEventListener('sourceopen', function() {
-          const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-          
-          fetch(url)
-            .then(response => response.arrayBuffer())
-            .then(data => {
-              sourceBuffer.addEventListener('updateend', function() {
-                if (!sourceBuffer.updating && mediaSource.readyState === 'open') {
-                  mediaSource.endOfStream();
-                }
-              });
-              sourceBuffer.appendBuffer(data);
-            })
-            .catch(e => {
-              console.error('TS fetch error:', e);
-              tryNextSource();
-            });
-        });
-      } else {
-        video.src = url;
-      }
-      
-      video.addEventListener('error', function onError() {
-        console.error('TS playback error:', video.error);
-        tryNextSource();
-      });
-    }
-    
-    // Load HLS natively (Safari)
-    function loadNativeHls(url) {
-      video.src = url;
-      
-      video.addEventListener('loadedmetadata', function onMetadata() {
-        video.removeEventListener('loadedmetadata', onMetadata);
-        video.play()
-          .then(() => {
-            hideLoading();
-            notifyParentPlaying();
-          })
-          .catch(e => {
-            console.error('Native HLS playback error:', e);
-            if (Hls.isSupported()) {
-              setupHlsJs(url);
-            } else {
-              showError('Playback error: ' + e.message);
-            }
-          });
-      });
-      
-      video.addEventListener('error', function onError() {
-        video.removeEventListener('error', onError);
-        if (Hls.isSupported()) {
-          setupHlsJs(url);
-        } else {
-          showError('Native HLS playback failed');
-        }
-      });
-    }
-    
-    // Setup HLS.js player
-    function setupHlsJs(url) {
-      hls = new Hls({
-        maxBufferLength: 15,
-        maxMaxBufferLength: 30,
-        maxBufferSize: 60 * 1000 * 1000,
-        maxBufferHole: 0.5,
-        lowLatencyMode: true,
-        abrEwmaDefaultEstimate: 500000,
-        backBufferLength: 30,
-        startLevel: -1,
-        fragLoadingTimeOut: 10000,
-        manifestLoadingTimeOut: 10000,
-        levelLoadingTimeOut: 10000,
-        xhrSetup: (xhr) => {
-          xhr.setRequestHeader('Cache-Control', 'no-cache');
-          xhr.setRequestHeader('Pragma', 'no-cache');
-          xhr.setRequestHeader('Origin', window.location.origin);
-        }
-      });
-      
-      hls.loadSource(url);
-      hls.attachMedia(video);
-      
-      hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
-        updateQualityOptions(data.levels);
-        hideLoading();
-        video.play()
-          .then(() => {
-            notifyParentPlaying();
-          })
-          .catch(e => {
-            console.error('HLS.js playback error:', e);
-            handlePlaybackError(e);
-          });
-      });
-      
-      hls.on(Hls.Events.FRAG_BUFFERED, hideLoading);
-      hls.on(Hls.Events.FRAG_LOADING, showLoading);
-      
-      hls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
-        showMessage(`Quality changed to ${hls.levels[data.level].height}p`);
-      });
-      
-      hls.on(Hls.Events.ERROR, function(event, data) {
-        if (data.fatal) {
-          console.error('HLS Error:', data);
-          switch(data.details) {
-            case Hls.ErrorDetails.MANIFEST_LOAD_ERROR:
-            case Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT:
-            case Hls.ErrorDetails.MANIFEST_PARSING_ERROR:
-              tryNextSource();
-              break;
-            case Hls.ErrorDetails.FRAG_LOAD_ERROR:
-            case Hls.ErrorDetails.FRAG_LOAD_TIMEOUT:
-              hls.startLoad();
-              break;
-            case Hls.ErrorDetails.KEY_LOAD_ERROR:
-            case Hls.ErrorDetails.KEY_LOAD_TIMEOUT:
-              hls.recoverMediaError();
-              break;
-            default:
-              tryNextSource();
-          }
-        }
-      });
-    }
-    
-    // Handle playback errors
-    function handlePlaybackError(error) {
-      if (error.name === 'NotAllowedError') {
-        video.muted = true;
-        updateMuteButton();
-        video.play()
-          .then(() => {
-            notifyParentPlaying();
-            showMessage('Autoplay muted. Click to unmute.');
-          })
-          .catch(err => {
-            showError('Playback blocked by browser');
-          });
-      } else {
-        showError('Playback error: ' + error.message);
-      }
-    }
-    
-    // Update quality options
-    function updateQualityOptions(levels) {
-      if (!levels || levels.length < 2) return;
-      
-      qualitySelector.innerHTML = '';
-      levels.forEach((level, index) => {
-        const option = document.createElement('div');
-        option.className = 'quality-option';
-        option.textContent = level.height ? `${level.height}p` : `Level ${index}`;
-        option.addEventListener('click', () => {
-          hls.currentLevel = index;
-          qualitySelector.style.display = 'none';
-        });
-        qualitySelector.appendChild(option);
-      });
-      
-      // Add auto option
-      const autoOption = document.createElement('div');
-      autoOption.className = 'quality-option';
-      autoOption.textContent = 'Auto';
-      autoOption.addEventListener('click', () => {
-        hls.currentLevel = -1;
-        qualitySelector.style.display = 'none';
-      });
-      qualitySelector.appendChild(autoOption);
-    }
-    
-    // Toggle quality selector
-    function toggleQualitySelector() {
-      if (qualitySelector.style.display === 'block') {
-        qualitySelector.style.display = 'none';
-      } else if (hls && hls.levels && hls.levels.length > 1) {
-        qualitySelector.style.display = 'block';
-      } else {
-        showMessage('No quality options available');
-      }
-    }
-    
-    // Show loading indicator
+    // Function to show loading
     function showLoading() {
       loadingContainer.style.display = 'flex';
       errorContainer.style.display = 'none';
       
-      clearInterval(progressInterval);
+      // Animate progress
       let progress = 0;
-      progressInterval = setInterval(() => {
-        progress += Math.random() * 15;
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 20; // Faster progress for better UX
         if (progress >= 99) {
           progress = 99;
           clearInterval(progressInterval);
         }
         loadingProgress.textContent = `${Math.floor(progress)}%`;
-      }, 150);
+      }, 100);
       
+      // Set timeout to show error if loading takes too long
       setTimeout(() => {
         if (loadingContainer.style.display !== 'none') {
           showError('Stream is taking too long to load. Try another source.');
           clearInterval(progressInterval);
         }
-      }, 6000);
+      }, 8000);
     }
     
-    // Hide loading indicator
+    // Function to hide loading
     function hideLoading() {
       loadingContainer.style.display = 'none';
-      clearInterval(progressInterval);
     }
     
-    // Show error message
+    // Function to show error
     function showError(message) {
       hideLoading();
       errorMessage.textContent = message || 'Unable to load the stream';
       errorContainer.style.display = 'flex';
       
+      // Notify parent window
       try {
         window.parent.postMessage('videoError', '*');
       } catch (e) {
@@ -686,7 +268,7 @@
       }
     }
     
-    // Show temporary message
+    // Function to show message
     function showMessage(text) {
       messageEl.textContent = text;
       messageEl.classList.add('show');
@@ -696,82 +278,88 @@
       }, 2000);
     }
     
-    // Try next source
-    function tryNextSource() {
-      if (retryCount >= MAX_RETRIES * sources.length) {
-        showError('All sources failed. Please check your connection.');
+    // Function to load stream
+    function loadStream(url) {
+      if (!url) {
+        showError('No stream URL provided');
         return;
       }
       
-      retryCount++;
-      currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-      showMessage(`Trying source ${currentSourceIndex + 1}/${sources.length}`);
+      showLoading();
       
+      // Set iframe source
+      streamFrame.src = url;
+      
+      // Handle iframe load event
+      streamFrame.onload = function() {
+        hideLoading();
+        
+        // Notify parent window
+        try {
+          window.parent.postMessage('videoPlaying', '*');
+        } catch (e) {
+          console.error('Error sending message to parent:', e);
+        }
+      };
+      
+      // Handle iframe error
+      streamFrame.onerror = function() {
+        showError('Stream failed to load');
+      };
+      
+      // Set timeout to check if iframe loaded successfully
       setTimeout(() => {
-        loadStream(sources[currentSourceIndex]);
-      }, 500 * Math.min(retryCount, 5));
+        // If still loading, consider it an error
+        if (loadingContainer.style.display !== 'none') {
+          tryNextSource();
+        }
+      }, 10000);
     }
     
-    // Retry current source
-    function retryCurrentSource() {
-      const timestamp = Date.now();
-      const baseUrl = sources[currentSourceIndex].split('?')[0];
-      sources[currentSourceIndex] = addTimestamp(baseUrl, timestamp);
+    // Function to try next source
+    function tryNextSource() {
+      currentSourceIndex = (currentSourceIndex + 1) % sources.length;
+      showMessage(`Trying source ${currentSourceIndex + 1}/${sources.length}`);
       loadStream(sources[currentSourceIndex]);
     }
     
-    // Notify parent window
-    function notifyParentPlaying() {
-      try {
-        window.parent.postMessage('videoPlaying', '*');
-      } catch (e) {
-        console.error('Error sending message to parent:', e);
-      }
+    // Function to retry current source
+    function retryCurrentSource() {
+      // Add new timestamp to force refresh
+      sources[currentSourceIndex] = addTimestamp(sources[currentSourceIndex].split('?')[0]);
+      loadStream(sources[currentSourceIndex]);
     }
     
-    // Toggle play/pause
-    function togglePlayPause() {
-      if (video.paused) {
-        video.play().catch(e => {
-          console.error('Play error:', e);
-          showError('Playback error: ' + e.message);
-        });
-      } else {
-        video.pause();
-      }
-      updatePlayPauseButton();
+    // Setup sources
+    if (streamUrl) {
+      // Create multiple sources from the original URL
+      sources = [streamUrl];
+      
+      // Add timestamp to avoid caching
+      sources[0] = addTimestamp(sources[0]);
+      
+      // Add fallback streams
+      sources = [...sources, ...fallbackStreams];
+    } else {
+      // If no stream URL provided, use fallback streams
+      sources = fallbackStreams;
     }
     
-    // Toggle mute
-    function toggleMute() {
-      video.muted = !video.muted;
-      updateMuteButton();
-      showMessage(video.muted ? 'Muted' : 'Unmuted');
-    }
+    // Event listeners
+    retryBtn.addEventListener('click', function() {
+      retryCurrentSource();
+    });
     
-    // Toggle fullscreen
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        videoContainer.requestFullscreen().catch(err => {
-          console.error('Fullscreen error:', err);
-        });
-      } else {
-        document.exitFullscreen();
-      }
-    }
+    nextSourceBtn.addEventListener('click', function() {
+      tryNextSource();
+    });
     
-    // Update mute button
-    function updateMuteButton() {
-      muteBtn.textContent = video.muted ? '🔇' : '🔊';
+    // Start loading the first source
+    if (sources.length > 0) {
+      loadStream(sources[currentSourceIndex]);
+    } else {
+      showError('No stream URL provided');
     }
-    
-    // Update play/pause button
-    function updatePlayPauseButton() {
-      playPauseBtn.textContent = video.paused ? '▶️' : '⏸️';
-    }
-    
-    // Initialize the player
-    initPlayer();
   </script>
 </body>
-  </html>
+</html>

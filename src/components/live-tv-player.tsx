@@ -16,10 +16,11 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
+  const [hlsInstance, setHlsInstance] = useState<any>(null);
   
   // Define multiple stream sources for better reliability
   const streamSources = [
@@ -41,52 +42,139 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
     // Start loading animation
     startLoadingAnimation();
     
-    // Set a timeout to consider the stream loaded after a certain time
-    loadingTimeoutRef.current = setTimeout(() => {
-      setIsLoading(false);
-      setLoadingProgress(100);
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-    }, 8000); // Longer timeout for better reliability
-    
-    // Listen for messages from the iframe
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data === 'videoPlaying') {
-        setIsLoading(false);
-        setStreamError(false);
-        setLoadingProgress(100);
-        if (loadingTimeoutRef.current) {
-          clearTimeout(loadingTimeoutRef.current);
-        }
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-      } else if (event.data === 'videoError') {
-        setStreamError(true);
-        setIsLoading(false);
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-      }
-    };
-    
-    window.addEventListener('message', handleMessage);
+    // Initialize HLS.js
+    initializePlayer();
     
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      window.removeEventListener('message', handleMessage);
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
       }
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
+      // Destroy HLS instance on unmount
+      if (hlsInstance) {
+        hlsInstance.destroy();
+      }
     };
-  }, [tv.stream_url, currentSourceIndex]);
+  }, [currentSourceIndex]);
+
+  const initializePlayer = () => {
+    if (!videoRef.current) return;
+    
+    // Reset video element
+    videoRef.current.src = "";
+    videoRef.current.load();
+    
+    // Destroy previous HLS instance if exists
+    if (hlsInstance) {
+      hlsInstance.destroy();
+    }
+    
+    const currentStreamUrl = streamSources[currentSourceIndex];
+    
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const separator = currentStreamUrl.includes('?') ? '&' : '?';
+    const streamUrlWithTimestamp = `${currentStreamUrl}${separator}_t=${timestamp}`;
+    
+    // Check if HLS.js is supported
+    if (window.Hls && window.Hls.isSupported()) {
+      const hls = new window.Hls({
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 90,
+        fragLoadingTimeOut: 20000,
+        manifestLoadingTimeOut: 20000,
+        levelLoadingTimeOut: 20000,
+      });
+      
+      hls.loadSource(streamUrlWithTimestamp);
+      hls.attachMedia(videoRef.current);
+      
+      hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+        videoRef.current?.play().catch(e => {
+          console.error('Playback error:', e);
+          // Auto-mute and retry if autoplay was blocked
+          if (e.name === 'NotAllowedError') {
+            setIsMuted(true);
+            videoRef.current.muted = true;
+            videoRef.current.play().catch(err => {
+              console.error('Second playback error:', err);
+              setStreamError(true);
+            });
+          } else {
+            setStreamError(true);
+          }
+        });
+        
+        setIsLoading(false);
+        setLoadingProgress(100);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
+      });
+      
+      hls.on(window.Hls.Events.ERROR, (event, data) => {
+        console.error('HLS error:', data);
+        
+        if (data.fatal) {
+          switch(data.type) {
+            case window.Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('Fatal network error encountered, trying to recover');
+              hls.startLoad();
+              break;
+            case window.Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('Fatal media error encountered, trying to recover');
+              hls.recoverMediaError();
+              break;
+            default:
+              console.log('Fatal error, switching source');
+              setStreamError(true);
+              setIsLoading(false);
+              break;
+          }
+        }
+      });
+      
+      setHlsInstance(hls);
+    } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+      // For Safari which has native HLS support
+      videoRef.current.src = streamUrlWithTimestamp;
+      videoRef.current.addEventListener('loadedmetadata', () => {
+        videoRef.current?.play().catch(e => {
+          console.error('Playback error:', e);
+          setStreamError(true);
+        });
+        
+        setIsLoading(false);
+        setLoadingProgress(100);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
+      });
+      
+      videoRef.current.addEventListener('error', () => {
+        console.error('Video error:', videoRef.current?.error);
+        setStreamError(true);
+        setIsLoading(false);
+      });
+    } else {
+      // Fallback to iframe for browsers without HLS support
+      setStreamError(true);
+      setIsLoading(false);
+      console.error('HLS not supported in this browser');
+    }
+  };
 
   const startLoadingAnimation = () => {
     setLoadingProgress(0);
+    setStreamError(false);
+    setIsLoading(true);
+    
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
@@ -97,6 +185,21 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
         return Math.min(next, 99);
       });
     }, 200);
+    
+    // Set a backup timer in case loading takes too long
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+    }
+    
+    loadingTimeoutRef.current = setTimeout(() => {
+      if (isLoading) {
+        setStreamError(true);
+        setIsLoading(false);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
+      }
+    }, 15000); // 15 seconds timeout
   };
 
   const toggleFullscreen = () => {
@@ -110,70 +213,22 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
-    if (iframeRef.current) {
-      // Try to send mute message to iframe
-      try {
-        iframeRef.current.contentWindow?.postMessage('toggleMute', '*');
-      } catch (e) {
-        console.log('Could not send mute message to iframe');
-      }
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
     }
   };
 
   const handleRefresh = () => {
-    setIsLoading(true);
-    setStreamError(false);
+    initializePlayer();
     startLoadingAnimation();
-    
-    // Force iframe reload with timestamp to bypass cache
-    if (iframeRef.current) {
-      const timestamp = new Date().getTime();
-      const currentSrc = streamSources[currentSourceIndex];
-      const separator = currentSrc.includes('?') ? '&' : '?';
-      const refreshedSrc = `${currentSrc}${separator}_t=${timestamp}`;
-      
-      // For our custom player, we need to reload the entire iframe
-      const playerUrl = `/stream-player.html?url=${encodeURIComponent(refreshedSrc)}&muted=${isMuted}`;
-      iframeRef.current.src = playerUrl;
-      
-      // Set a backup timer in case onLoad doesn't fire
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-      }
-      loadingTimeoutRef.current = setTimeout(() => {
-        setIsLoading(false);
-        setLoadingProgress(100);
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-      }, 8000);
-    }
   };
 
   const switchSource = () => {
     const nextIndex = (currentSourceIndex + 1) % streamSources.length;
     setCurrentSourceIndex(nextIndex);
-    setIsLoading(true);
-    setStreamError(false);
     startLoadingAnimation();
   };
-
-  const handleIframeLoad = () => {
-    // We'll rely on the message event for more accurate loading state
-    console.log("Iframe loaded");
-  };
-
-  const handleIframeError = () => {
-    setStreamError(true);
-    setIsLoading(false);
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-  };
-
-  // Get current stream URL
-  const currentStreamUrl = streamSources[currentSourceIndex];
 
   return (
     <div className="w-full h-full flex flex-col bg-black">
@@ -266,20 +321,14 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
           </div>
         )}
         
-        {currentStreamUrl && (
-          <div className="w-full h-full flex items-center justify-center bg-black">
-            <iframe
-              ref={iframeRef}
-              src={`/stream-player.html?url=${encodeURIComponent(currentStreamUrl)}&muted=${isMuted}`}
-              className="w-full h-full border-0"
-              allow="autoplay; fullscreen"
-              allowFullScreen
-              onLoad={handleIframeLoad}
-              onError={handleIframeError}
-              sandbox="allow-same-origin allow-scripts allow-forms"
-            ></iframe>
-          </div>
-        )}
+        <video
+          ref={videoRef}
+          className="w-full h-full bg-black"
+          playsInline
+          autoPlay
+          muted={isMuted}
+          controls
+        />
       </div>
       
       <div className="p-4 bg-gradient-to-r from-gray-900 to-gray-800 border-t border-gray-800 relative">

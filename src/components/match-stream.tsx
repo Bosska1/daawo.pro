@@ -48,7 +48,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
-    }, 8000); // Longer timeout for slower connections
+    }, 6000); // Shorter timeout for better UX
     
     // Listen for messages from the iframe
     const handleMessage = (event: MessageEvent) => {
@@ -59,6 +59,12 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         if (loadingTimeoutRef.current) {
           clearTimeout(loadingTimeoutRef.current);
         }
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
+      } else if (event.data === 'videoError') {
+        setStreamError(true);
+        setIsLoading(false);
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
         }
@@ -87,7 +93,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     
     progressIntervalRef.current = setInterval(() => {
       setLoadingProgress(prev => {
-        const next = prev + (100 - prev) * 0.15;
+        const next = prev + (100 - prev) * 0.2; // Faster progress
         return Math.min(next, 99);
       });
     }, 100);
@@ -141,7 +147,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
         }
-      }, 8000);
+      }, 6000);
     }
   };
 
@@ -269,6 +275,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
               allowFullScreen
               onLoad={handleIframeLoad}
               onError={handleIframeError}
+              sandbox="allow-same-origin allow-scripts allow-forms"
             ></iframe>
           </div>
         )}

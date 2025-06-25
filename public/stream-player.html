@@ -84,10 +84,118 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    
+    /* Direct video controls styling */
+    .video-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 20;
+    }
+    
+    .video-container:hover .video-controls {
+      opacity: 1;
+    }
+    
+    .control-button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+    }
+    
+    .control-button:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+    
+    .control-button svg {
+      width: 24px;
+      height: 24px;
+    }
+    
+    .progress-container {
+      flex-grow: 1;
+      margin: 0 10px;
+      height: 5px;
+      background-color: rgba(255,255,255,0.2);
+      border-radius: 5px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background-color: #38ef7d;
+      width: 0%;
+    }
+    
+    .fallback-message {
+      text-align: center;
+      padding: 20px;
+      background-color: rgba(0,0,0,0.7);
+      border-radius: 8px;
+      max-width: 80%;
+      margin: 0 auto;
+    }
+    
+    .fallback-button {
+      background-color: #38ef7d;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 15px;
+      transition: background-color 0.2s;
+    }
+    
+    .fallback-button:hover {
+      background-color: #2fd66a;
+    }
   </style>
 </head>
 <body>
-  <video id="videoPlayer" controls autoplay playsinline></video>
+  <div id="videoContainer" class="video-container">
+    <video id="videoPlayer" controls autoplay playsinline></video>
+    
+    <!-- Custom video controls (optional) -->
+    <div class="video-controls">
+      <button class="control-button" id="playPauseBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"></path>
+        </svg>
+      </button>
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <button class="control-button" id="muteBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
+        </svg>
+      </button>
+      <button class="control-button" id="fullscreenBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
   
   <div id="loadingContainer" class="loading-container">
     <div class="spinner"></div>
@@ -98,6 +206,7 @@
     <div class="error-icon">⚠️</div>
     <div class="error-message">Stream loading error</div>
     <button class="error-button" onclick="retryStream()">Try Again</button>
+    <button class="error-button" onclick="tryDirectPlay()" style="margin-top: 10px; background-color: #3b82f6;">Try Direct Play</button>
   </div>
 
   <script>
@@ -109,14 +218,35 @@
     const video = document.getElementById('videoPlayer');
     const errorContainer = document.getElementById('errorContainer');
     const loadingContainer = document.getElementById('loadingContainer');
+    const videoContainer = document.getElementById('videoContainer');
+    
+    // Custom controls elements
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
     
     // Set initial muted state
     video.muted = muted;
+    
+    // Alternative stream sources
+    const alternativeSources = [
+      streamUrl,
+      streamUrl.replace('beIN_Sports1_HD-ar', 'beIN_Sports2_HD-ar'),
+      streamUrl.replace('beIN_Sports1_HD-ar', 'beIN_Sports3_HD-ar'),
+      // Add more fallbacks if needed
+    ];
+    
+    let currentSourceIndex = 0;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
     
     // Listen for mute toggle messages from parent
     window.addEventListener('message', function(event) {
       if (event.data === 'toggleMute') {
         video.muted = !video.muted;
+        updateMuteButton();
       }
     });
     
@@ -138,6 +268,41 @@
       errorContainer.style.display = 'flex';
     }
     
+    // Function to try direct video playback without HLS.js
+    function tryDirectPlay() {
+      showLoading();
+      
+      // Clean up any existing HLS instance
+      if (window.hls) {
+        window.hls.destroy();
+        window.hls = null;
+      }
+      
+      // Set the video source directly
+      video.src = streamUrl;
+      video.load();
+      
+      video.addEventListener('loadeddata', function onceLoaded() {
+        hideLoading();
+        video.play().catch(e => {
+          console.log('Direct playback error:', e);
+          showError("Direct playback failed: " + e.message);
+        });
+        video.removeEventListener('loadeddata', onceLoaded);
+      });
+      
+      video.addEventListener('error', function onceError() {
+        showError("Direct playback failed. The stream may be unavailable.");
+        video.removeEventListener('error', onceError);
+      });
+    }
+    
+    // Function to try the next source
+    function tryNextSource() {
+      currentSourceIndex = (currentSourceIndex + 1) % alternativeSources.length;
+      loadStream(alternativeSources[currentSourceIndex]);
+    }
+    
     // Function to load the stream
     function loadStream(url = streamUrl) {
       showLoading();
@@ -146,6 +311,11 @@
         showError("No stream URL provided");
         return;
       }
+      
+      // Add timestamp to bypass cache
+      const timestamp = new Date().getTime();
+      const separator = url.includes('?') ? '&' : '?';
+      const urlWithTimestamp = `${url}${separator}_t=${timestamp}`;
       
       // Clean up any existing HLS instance
       if (window.hls) {
@@ -166,10 +336,15 @@
           backBufferLength: 90,
           fragLoadingTimeOut: 20000, // Longer timeout for slow connections
           manifestLoadingTimeOut: 20000,
-          levelLoadingTimeOut: 20000
+          levelLoadingTimeOut: 20000,
+          xhrSetup: function(xhr) {
+            // Add cache-busting headers
+            xhr.setRequestHeader('Cache-Control', 'no-cache');
+            xhr.setRequestHeader('Pragma', 'no-cache');
+          }
         });
         
-        window.hls.loadSource(url);
+        window.hls.loadSource(urlWithTimestamp);
         window.hls.attachMedia(video);
         
         window.hls.on(Hls.Events.MANIFEST_PARSED, function() {
@@ -179,11 +354,15 @@
             // Auto-mute and retry if autoplay was blocked
             if (e.name === 'NotAllowedError') {
               video.muted = true;
+              updateMuteButton();
               video.play().catch(err => {
                 showError("Playback error: " + err.message);
               });
             }
           });
+          
+          // Notify parent when video starts playing
+          window.parent.postMessage('videoPlaying', '*');
         });
         
         window.hls.on(Hls.Events.ERROR, function(event, data) {
@@ -195,6 +374,13 @@
                 // Try to recover network error
                 console.log('Fatal network error encountered, trying to recover');
                 window.hls.startLoad();
+                
+                // If multiple network errors, try next source
+                retryCount++;
+                if (retryCount >= MAX_RETRIES) {
+                  retryCount = 0;
+                  tryNextSource();
+                }
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
                 console.log('Fatal media error encountered, trying to recover');
@@ -209,17 +395,27 @@
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // For Safari which has native HLS support
-        video.src = url;
+        video.src = urlWithTimestamp;
         video.addEventListener('loadedmetadata', function() {
           hideLoading();
           video.play().catch(e => {
             console.log('Playback error:', e);
             showError("Playback error: " + e.message);
           });
+          
+          // Notify parent when video starts playing
+          window.parent.postMessage('videoPlaying', '*');
         });
         
         video.addEventListener('error', function() {
           showError("Stream loading error: " + (video.error ? video.error.message : "unknown error"));
+          
+          // Try next source on error
+          retryCount++;
+          if (retryCount >= MAX_RETRIES) {
+            retryCount = 0;
+            tryNextSource();
+          }
         });
       } else {
         showError("Your browser doesn't support HLS playback");
@@ -230,8 +426,9 @@
     function retryStream() {
       // Add timestamp to force reload
       const timestamp = new Date().getTime();
-      const separator = streamUrl.includes('?') ? '&' : '?';
-      const refreshedUrl = `${streamUrl}${separator}_t=${timestamp}`;
+      const currentSource = alternativeSources[currentSourceIndex];
+      const separator = currentSource.includes('?') ? '&' : '?';
+      const refreshedUrl = `${currentSource}${separator}_t=${timestamp}`;
       
       loadStream(refreshedUrl);
     }
@@ -251,6 +448,86 @@
       const errorMessage = video.error ? video.error.message : "Unknown error";
       showError(`Video error (${errorCode}): ${errorMessage}`);
     });
+    
+    // Custom controls functionality
+    function updatePlayPauseButton() {
+      if (video.paused) {
+        playPauseBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>';
+      } else {
+        playPauseBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>';
+      }
+    }
+    
+    function updateMuteButton() {
+      if (video.muted) {
+        muteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"></path></svg>';
+      } else {
+        muteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>';
+      }
+    }
+    
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        videoContainer.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+    
+    function updateProgressBar() {
+      if (video.duration) {
+        const percentage = (video.currentTime / video.duration) * 100;
+        progressBar.style.width = `${percentage}%`;
+      }
+    }
+    
+    // Event listeners for custom controls
+    playPauseBtn.addEventListener('click', function() {
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+      updatePlayPauseButton();
+    });
+    
+    muteBtn.addEventListener('click', function() {
+      video.muted = !video.muted;
+      updateMuteButton();
+    });
+    
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    
+    progressContainer.addEventListener('click', function(e) {
+      const rect = progressContainer.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      video.currentTime = pos * video.duration;
+    });
+    
+    video.addEventListener('timeupdate', updateProgressBar);
+    video.addEventListener('play', updatePlayPauseButton);
+    video.addEventListener('pause', updatePlayPauseButton);
+    
+    // Initialize button states
+    updatePlayPauseButton();
+    updateMuteButton();
+    
+    // Fallback for mobile devices
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      // Mobile devices often have issues with HLS.js, so we'll use native playback if possible
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = streamUrl;
+        video.addEventListener('loadedmetadata', function() {
+          hideLoading();
+          video.play().catch(e => {
+            console.log('Mobile playback error:', e);
+            showError("Mobile playback error. Try tapping the screen to play.");
+          });
+        });
+      }
+    }
   </script>
 </body>
 </html>

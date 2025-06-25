@@ -36,6 +36,17 @@ export type Match = {
   competition?: Competition;
 };
 
+export type LiveTV = {
+  id: string;
+  name: string;
+  category: string;
+  logo?: string;
+  stream_url: string;
+  is_premium: boolean;
+  country?: string;
+  language?: string;
+};
+
 export type AdminUser = {
   id: string;
   email: string;

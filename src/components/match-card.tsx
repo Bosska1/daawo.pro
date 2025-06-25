@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Match } from '@/lib/supabase';
 import { formatDate, formatTime, formatMatchTime } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+import { Play } from 'lucide-react';
 
 interface MatchCardProps {
   match: Match;
@@ -36,32 +37,9 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
   };
 
   return (
-    <Card className="w-full bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-300 overflow-hidden relative">
+    <Card className="w-full bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-300 overflow-hidden relative group">
       <CardContent className="p-4">
         <div className="flex flex-col space-y-3">
-          {/* Teams */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-semibold">{match.team_a?.name}</span>
-              <span className="text-xl">{match.team_a?.flag}</span>
-            </div>
-            
-            {match.status === 'finished' ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-bold text-primary">{match.score_team_a}</span>
-                <span className="text-gray-400">-</span>
-                <span className="text-xl font-bold text-primary">{match.score_team_b}</span>
-              </div>
-            ) : (
-              <span className="text-gray-400">vs</span>
-            )}
-            
-            <div className="flex items-center space-x-2">
-              <span className="text-xl">{match.team_b?.flag}</span>
-              <span className="text-lg font-semibold">{match.team_b?.name}</span>
-            </div>
-          </div>
-          
           {/* Competition */}
           <div className="flex items-center justify-center">
             <span className="text-sm text-gray-400">
@@ -69,15 +47,51 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
             </span>
           </div>
           
-          {/* Match Info */}
-          <div className="flex items-center justify-center">
-            {match.status === 'live' && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/60 text-red-200">
-                <span className="w-2 h-2 mr-1.5 bg-red-500 rounded-full animate-pulse"></span>
-                Live Now!
-              </span>
+          {/* Teams */}
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col items-center space-y-1 w-2/5">
+              <span className="text-xl">{match.team_a?.flag}</span>
+              <span className="text-base font-semibold text-center">{match.team_a?.name}</span>
+            </div>
+            
+            {match.status === 'finished' ? (
+              <div className="flex flex-col items-center justify-center w-1/5">
+                <div className="flex items-center justify-center bg-gray-800 rounded-lg px-3 py-1">
+                  <span className="text-xl font-bold text-primary">{match.score_team_a}</span>
+                  <span className="text-gray-400 mx-2">-</span>
+                  <span className="text-xl font-bold text-primary">{match.score_team_b}</span>
+                </div>
+                <span className="text-xs text-gray-500 mt-1">Final Score</span>
+              </div>
+            ) : match.status === 'live' ? (
+              <div className="flex flex-col items-center justify-center w-1/5">
+                <div className="flex items-center justify-center bg-red-900/30 rounded-lg px-3 py-1">
+                  <span className="text-xl font-bold text-white">{match.score_team_a || 0}</span>
+                  <span className="text-gray-400 mx-2">-</span>
+                  <span className="text-xl font-bold text-white">{match.score_team_b || 0}</span>
+                </div>
+                <span className="inline-flex items-center text-xs text-red-400 mt-1">
+                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse mr-1"></span>
+                  LIVE
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center w-1/5">
+                <div className="flex items-center justify-center bg-gray-800 rounded-lg px-3 py-1">
+                  <span className="text-gray-400">VS</span>
+                </div>
+                <span className="text-xs text-gray-500 mt-1">{formatTime(match.kickoff_time)}</span>
+              </div>
             )}
             
+            <div className="flex flex-col items-center space-y-1 w-2/5">
+              <span className="text-xl">{match.team_b?.flag}</span>
+              <span className="text-base font-semibold text-center">{match.team_b?.name}</span>
+            </div>
+          </div>
+          
+          {/* Match Info */}
+          <div className="flex items-center justify-center">
             {match.status === 'upcoming' && (
               <span className="text-sm text-gray-400">
                 ⏳ {formatMatchTime(match.kickoff_time)}
@@ -86,7 +100,7 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
             
             {match.status === 'finished' && (
               <span className="text-sm text-gray-400">
-                📅 Final Score: {formatDate(match.kickoff_time)}
+                📅 {formatDate(match.kickoff_time)}
               </span>
             )}
           </div>
@@ -97,10 +111,10 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
         {match.status === 'live' && (
           <Button 
             variant="glow" 
-            className="w-full"
+            className="w-full group-hover:scale-105 transition-transform"
             onClick={handleWatchClick}
           >
-            ▶️ Watch Live
+            <Play className="h-4 w-4 mr-2" /> Watch Live
           </Button>
         )}
         
@@ -120,6 +134,16 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
           </Button>
         )}
       </CardFooter>
+      
+      {/* Live Indicator */}
+      {match.status === 'live' && (
+        <div className="absolute top-2 right-2">
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900/60 text-red-200">
+            <span className="w-1.5 h-1.5 mr-1 bg-red-500 rounded-full animate-pulse"></span>
+            LIVE
+          </span>
+        </div>
+      )}
       
       {/* Ad Popup */}
       {showAd && (

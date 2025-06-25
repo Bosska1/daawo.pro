@@ -146,24 +146,21 @@
       100% { transform: rotate(360deg); }
     }
     
-    /* Video controls */
-    .video-controls {
+    /* Controls */
+    .controls {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-      padding: 15px 10px 10px;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+      padding: 20px 15px 15px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
       opacity: 0;
       transition: opacity 0.3s ease;
-      z-index: 20;
     }
     
-    #videoContainer:hover .video-controls,
-    .video-controls:hover {
+    #videoContainer:hover .controls {
       opacity: 1;
     }
     
@@ -177,196 +174,50 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
-      transition: all 0.2s ease;
+      margin: 0 5px;
     }
     
     .control-button:hover {
-      background-color: rgba(56, 239, 125, 0.2);
-      transform: scale(1.1);
+      color: #38ef7d;
     }
     
-    .control-button svg {
-      width: 24px;
-      height: 24px;
-    }
-    
-    .progress-container {
-      flex-grow: 1;
-      margin: 0 15px;
-      height: 6px;
-      background-color: rgba(255,255,255,0.2);
-      border-radius: 3px;
-      overflow: hidden;
-      cursor: pointer;
-      position: relative;
-    }
-    
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(to right, #3b82f6, #38ef7d);
-      width: 0%;
-      border-radius: 3px;
-      transition: width 0.1s linear;
-    }
-    
-    .progress-hover {
-      position: absolute;
-      top: -25px;
-      background-color: rgba(0,0,0,0.8);
-      color: white;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-      transform: translateX(-50%);
-      display: none;
-    }
-    
-    .progress-container:hover .progress-hover {
-      display: block;
-    }
-    
-    .time-display {
-      font-size: 14px;
-      color: #d1d5db;
-      margin: 0 10px;
-      min-width: 80px;
-      text-align: center;
-    }
-    
-    /* Mobile optimizations */
-    @media (max-width: 640px) {
-      .video-controls {
-        padding: 10px 5px 5px;
-      }
-      
-      .control-button {
-        width: 36px;
-        height: 36px;
-      }
-      
-      .control-button svg {
-        width: 20px;
-        height: 20px;
-      }
-      
-      .time-display {
-        font-size: 12px;
-        min-width: 60px;
-      }
-      
-      .progress-container {
-        margin: 0 8px;
-        height: 4px;
-      }
-    }
-    
-    /* Overlay message */
-    .overlay-message {
+    .message {
       position: absolute;
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background-color: rgba(0,0,0,0.8);
+      background-color: rgba(0,0,0,0.7);
       color: white;
       padding: 8px 16px;
       border-radius: 4px;
       font-size: 14px;
-      z-index: 30;
       opacity: 0;
       transition: opacity 0.3s ease;
     }
     
-    .overlay-message.show {
+    .message.show {
       opacity: 1;
-    }
-    
-    /* Source selector */
-    .source-selector {
-      position: absolute;
-      bottom: 70px;
-      right: 20px;
-      background-color: rgba(0,0,0,0.8);
-      border-radius: 8px;
-      padding: 10px;
-      z-index: 25;
-      display: none;
-    }
-    
-    .source-selector.show {
-      display: block;
-    }
-    
-    .source-option {
-      padding: 8px 12px;
-      margin: 5px 0;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      color: #d1d5db;
-    }
-    
-    .source-option:hover {
-      background-color: rgba(56, 239, 125, 0.2);
-      color: white;
-    }
-    
-    .source-option.active {
-      background-color: rgba(56, 239, 125, 0.3);
-      color: #38ef7d;
     }
   </style>
 </head>
 <body>
   <div id="videoContainer">
-    <video id="videoPlayer" playsinline></video>
+    <!-- Direct video element -->
+    <video id="videoPlayer" playsinline autoplay></video>
     
-    <!-- Custom video controls -->
-    <div class="video-controls">
-      <button class="control-button" id="playPauseBtn">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M8 5v14l11-7z"></path>
-        </svg>
-      </button>
-      
-      <div class="progress-container" id="progressContainer">
-        <div class="progress-bar" id="progressBar"></div>
-        <div class="progress-hover" id="progressHover">00:00</div>
-      </div>
-      
-      <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
-      
-      <button class="control-button" id="muteBtn">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
-        </svg>
-      </button>
-      
-      <button class="control-button" id="sourceBtn">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
-        </svg>
-      </button>
-      
-      <button class="control-button" id="fullscreenBtn">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"></path>
-        </svg>
-      </button>
+    <!-- Controls -->
+    <div class="controls">
+      <button id="playPauseBtn" class="control-button">▶️</button>
+      <button id="muteBtn" class="control-button">🔊</button>
+      <button id="refreshBtn" class="control-button">🔄</button>
+      <button id="fullscreenBtn" class="control-button">⛶</button>
     </div>
     
-    <!-- Source selector -->
-    <div class="source-selector" id="sourceSelector">
-      <div class="source-option active" data-index="0">Source 1 (Default)</div>
-      <div class="source-option" data-index="1">Source 2</div>
-      <div class="source-option" data-index="2">Source 3</div>
-      <div class="source-option" data-index="3">Source 4</div>
-    </div>
-    
-    <!-- Overlay message -->
-    <div class="overlay-message" id="overlayMessage">Message</div>
+    <!-- Message display -->
+    <div id="message" class="message"></div>
   </div>
   
+  <!-- Loading indicator -->
   <div id="loadingContainer" class="loading-container">
     <div class="spinner">
       <div class="spinner-ring"></div>
@@ -377,468 +228,323 @@
     <div class="loading-progress" id="loadingProgress">0%</div>
   </div>
   
+  <!-- Error display -->
   <div id="errorContainer" class="error-container" style="display: none;">
     <div class="error-icon">⚠️</div>
-    <div class="error-message" id="errorMessage">Stream loading error</div>
-    <button class="error-button" onclick="retryStream()">Try Again</button>
-    <button class="error-button" onclick="tryNextSource()" style="margin-top: 10px; background: linear-gradient(to right, #3b82f6, #38ef7d);">
-      Try Another Source
-    </button>
+    <div class="error-message" id="errorMessage">Unable to load the stream</div>
+    <button class="error-button" id="retryBtn">Try Again</button>
+    <button class="error-button" id="nextSourceBtn" style="margin-top: 10px;">Try Another Source</button>
   </div>
 
   <script>
+    // DOM elements
+    const video = document.getElementById('videoPlayer');
+    const loadingContainer = document.getElementById('loadingContainer');
+    const loadingProgress = document.getElementById('loadingProgress');
+    const errorContainer = document.getElementById('errorContainer');
+    const errorMessage = document.getElementById('errorMessage');
+    const retryBtn = document.getElementById('retryBtn');
+    const nextSourceBtn = document.getElementById('nextSourceBtn');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const messageEl = document.getElementById('message');
+    const videoContainer = document.getElementById('videoContainer');
+    
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const streamUrl = urlParams.get('url');
-    const muted = urlParams.get('muted') === 'true';
+    const initialMuted = urlParams.get('muted') === 'true';
     
-    // DOM elements
-    const video = document.getElementById('videoPlayer');
-    const errorContainer = document.getElementById('errorContainer');
-    const errorMessage = document.getElementById('errorMessage');
-    const loadingContainer = document.getElementById('loadingContainer');
-    const loadingProgress = document.getElementById('loadingProgress');
-    const videoContainer = document.getElementById('videoContainer');
-    const overlayMessage = document.getElementById('overlayMessage');
-    const sourceSelector = document.getElementById('sourceSelector');
+    // Set initial state
+    video.muted = initialMuted;
+    updateMuteButton();
     
-    // Control elements
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const muteBtn = document.getElementById('muteBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const sourceBtn = document.getElementById('sourceBtn');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const progressHover = document.getElementById('progressHover');
-    const timeDisplay = document.getElementById('timeDisplay');
+    // Stream sources
+    let sources = [];
+    let currentSourceIndex = 0;
     
-    // Set initial muted state
-    video.muted = muted;
-    
-    // Alternative stream sources - create variations of the URL
-    let alternativeSources = [];
-    
+    // Create multiple sources from the original URL
     if (streamUrl) {
       // Original URL
-      alternativeSources.push(streamUrl);
+      sources.push(streamUrl);
       
-      // Create variations by changing parts of the URL
+      // Create variations
+      const urlObj = new URL(streamUrl);
+      const pathParts = urlObj.pathname.split('/');
+      
+      // Add timestamp to avoid caching
+      const timestamp = Date.now();
+      sources[0] = addTimestamp(sources[0], timestamp);
+      
+      // Create alternative sources
       if (streamUrl.includes('beIN_Sports')) {
-        for (let i = 1; i <= 4; i++) {
-          const newUrl = streamUrl.replace(/beIN_Sports\d+_HD/, `beIN_Sports${i}_HD`);
+        // For beIN Sports URLs, try different channel numbers
+        for (let i = 1; i <= 3; i++) {
+          const newUrl = streamUrl.replace(/beIN_Sports\d+/, `beIN_Sports${i}`);
           if (newUrl !== streamUrl) {
-            alternativeSources.push(newUrl);
+            sources.push(addTimestamp(newUrl, timestamp));
           }
         }
       } else {
-        // Add some generic alternatives if not a beIN Sports URL
-        const urlObj = new URL(streamUrl);
-        const pathParts = urlObj.pathname.split('/');
-        
-        // Try adding variations
+        // Generic alternatives - try different variations
         if (pathParts.length > 1) {
+          // Try changing numbers in the URL
           const lastPart = pathParts[pathParts.length - 1];
+          const numMatch = lastPart.match(/(\d+)/);
           
-          // Try a few variations
-          for (let i = 1; i <= 3; i++) {
-            const newLastPart = lastPart.replace(/\d+/, match => {
-              const num = parseInt(match);
-              return isNaN(num) ? match : (num + i);
-            });
-            
-            if (newLastPart !== lastPart) {
+          if (numMatch) {
+            const num = parseInt(numMatch[1]);
+            for (let i = 1; i <= 3; i++) {
+              const newNum = num + i;
+              const newLastPart = lastPart.replace(/\d+/, newNum);
               pathParts[pathParts.length - 1] = newLastPart;
-              const newPath = pathParts.join('/');
-              urlObj.pathname = newPath;
-              alternativeSources.push(urlObj.toString());
+              
+              const newPathname = pathParts.join('/');
+              const newUrl = new URL(streamUrl);
+              newUrl.pathname = newPathname;
+              
+              sources.push(addTimestamp(newUrl.toString(), timestamp));
             }
           }
         }
       }
     }
     
-    // Ensure we have at least 4 sources (duplicating if necessary)
-    while (alternativeSources.length < 4 && alternativeSources.length > 0) {
-      alternativeSources.push(alternativeSources[0]);
+    // Ensure we have at least 3 sources
+    while (sources.length < 3 && sources.length > 0) {
+      sources.push(sources[0]);
     }
     
-    // Add timestamp to each URL to prevent caching
-    alternativeSources = alternativeSources.map(url => {
-      const timestamp = new Date().getTime();
+    // Function to add timestamp to URL
+    function addTimestamp(url, timestamp) {
       const separator = url.includes('?') ? '&' : '?';
       return `${url}${separator}_t=${timestamp}`;
-    });
+    }
     
-    // Update source selector options
-    const sourceOptions = document.querySelectorAll('.source-option');
-    sourceOptions.forEach((option, index) => {
-      if (index < alternativeSources.length) {
-        option.textContent = `Source ${index + 1}${index === 0 ? ' (Default)' : ''}`;
-      } else {
-        option.style.display = 'none';
-      }
-    });
-    
-    let currentSourceIndex = 0;
-    let retryCount = 0;
-    const MAX_RETRIES = 3;
-    let progressInterval = null;
-    let loadingTimeout = null;
-    let hlsConfig = {
-      maxBufferLength: 30,
-      maxMaxBufferLength: 60,
-      enableWorker: true,
-      lowLatencyMode: true,
-      backBufferLength: 90,
-      fragLoadingTimeOut: 10000, // Reduced timeout for faster error detection
-      manifestLoadingTimeOut: 10000, // Reduced timeout for faster error detection
-      levelLoadingTimeOut: 10000, // Reduced timeout for faster error detection
-      startLevel: 0, // Start with lowest quality for faster initial load
-      abrEwmaDefaultEstimate: 500000, // Lower initial bandwidth estimate
-      abrEwmaFastLive: 3.0, // Faster ABR algorithm for live streams
-      testBandwidth: false, // Skip initial bandwidth test
-      progressive: true, // Enable progressive loading
-      xhrSetup: function(xhr) {
-        xhr.setRequestHeader('Cache-Control', 'no-cache');
-        xhr.setRequestHeader('Pragma', 'no-cache');
-      }
-    };
-    
-    // Listen for mute toggle messages from parent
-    window.addEventListener('message', function(event) {
-      if (event.data === 'toggleMute') {
-        video.muted = !video.muted;
-        updateMuteButton();
-        showOverlayMessage(video.muted ? 'Muted' : 'Unmuted');
-      }
-    });
-    
-    // Function to show loading indicator with faster progress
+    // Function to show loading
     function showLoading() {
       loadingContainer.style.display = 'flex';
       errorContainer.style.display = 'none';
       
-      // Start progress animation - faster progress for better perceived performance
+      // Animate progress
       let progress = 0;
-      loadingProgress.textContent = '0%';
-      
-      if (progressInterval) {
-        clearInterval(progressInterval);
-      }
-      
-      progressInterval = setInterval(() => {
-        progress += Math.random() * 5; // Faster progress
-        if (progress > 99) {
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 10; // Faster progress for better UX
+        if (progress >= 99) {
           progress = 99;
           clearInterval(progressInterval);
         }
-        loadingProgress.textContent = `${Math.round(progress)}%`;
-      }, 100); // Update more frequently
+        loadingProgress.textContent = `${Math.floor(progress)}%`;
+      }, 200);
       
-      // Set a shorter timeout (5 seconds instead of 10)
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
-      
-      loadingTimeout = setTimeout(() => {
-        hideLoading();
-        if (progressInterval) {
+      // Set timeout to show error if loading takes too long
+      setTimeout(() => {
+        if (loadingContainer.style.display !== 'none') {
+          showError('Stream is taking too long to load. Try another source.');
           clearInterval(progressInterval);
         }
-        
-        // If still loading after timeout, try next source automatically
-        if (!video.readyState || video.readyState < 3) {
-          tryNextSource();
-        }
-      }, 5000); // Reduced from 10000 to 5000
+      }, 8000); // Reduced timeout for better UX
     }
     
-    // Function to hide loading indicator
+    // Function to hide loading
     function hideLoading() {
       loadingContainer.style.display = 'none';
-      if (progressInterval) {
-        clearInterval(progressInterval);
-        progressInterval = null;
-      }
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-        loadingTimeout = null;
-      }
     }
     
-    // Function to show error message
+    // Function to show error
     function showError(message) {
       hideLoading();
-      errorMessage.textContent = message || "Stream loading error";
+      errorMessage.textContent = message || 'Unable to load the stream';
       errorContainer.style.display = 'flex';
       
-      // Notify parent about error
+      // Notify parent window
       try {
         window.parent.postMessage('videoError', '*');
       } catch (e) {
-        console.error('Could not send error message to parent:', e);
+        console.error('Error sending message to parent:', e);
       }
     }
     
-    // Function to show overlay message
-    function showOverlayMessage(message) {
-      overlayMessage.textContent = message;
-      overlayMessage.classList.add('show');
+    // Function to show message
+    function showMessage(text) {
+      messageEl.textContent = text;
+      messageEl.classList.add('show');
       
       setTimeout(() => {
-        overlayMessage.classList.remove('show');
+        messageEl.classList.remove('show');
       }, 2000);
     }
     
-    // Function to try the next source
-    function tryNextSource() {
-      currentSourceIndex = (currentSourceIndex + 1) % alternativeSources.length;
-      
-      // Update active source in selector
-      sourceOptions.forEach((option, index) => {
-        if (index === currentSourceIndex) {
-          option.classList.add('active');
-        } else {
-          option.classList.remove('active');
-        }
-      });
-      
-      showOverlayMessage(`Switched to Source ${currentSourceIndex + 1}`);
-      loadStream(alternativeSources[currentSourceIndex]);
-    }
-    
-    // Function to load the stream with optimizations for faster loading
+    // Function to load stream
     function loadStream(url) {
-      showLoading();
-      
       if (!url) {
-        showError("No stream URL provided");
+        showError('No stream URL provided');
         return;
       }
       
-      // Clean up any existing HLS instance
-      if (window.hls) {
-        window.hls.destroy();
-        window.hls = null;
-      }
+      showLoading();
       
-      // Reset video element
-      video.src = "";
+      // Reset video
+      video.pause();
+      video.removeAttribute('src');
       video.load();
       
-      // Try direct playback first for faster loading
-      try {
+      // Try direct playback first (for Safari)
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;
-        video.muted = true; // Mute initially to avoid autoplay restrictions
-        
-        // Set a short timeout to check if direct playback works
-        setTimeout(() => {
-          const playPromise = video.play();
-          
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              // Direct playback successful
-              video.muted = muted; // Restore original mute state
-              hideLoading();
-              updateMuteButton();
-              
-              // Notify parent when video starts playing
-              try {
-                window.parent.postMessage('videoPlaying', '*');
-              } catch (e) {
-                console.error('Could not send playing message to parent:', e);
-              }
-            }).catch(e => {
-              // Direct playback failed, try HLS
-              loadWithHLS(url);
+        video.addEventListener('loadedmetadata', function onMetadata() {
+          video.removeEventListener('loadedmetadata', onMetadata);
+          hideLoading();
+          video.play()
+            .then(() => {
+              notifyParentPlaying();
+            })
+            .catch(e => {
+              console.error('Direct playback error:', e);
+              // Try with HLS.js instead
+              setupHLS(url);
             });
-          } else {
-            // Play promise not supported, try HLS
-            loadWithHLS(url);
-          }
-        }, 500);
-      } catch (e) {
-        // Error with direct playback, try HLS
-        loadWithHLS(url);
+        });
+        
+        video.addEventListener('error', function onError() {
+          video.removeEventListener('error', onError);
+          console.error('Video error:', video.error);
+          // Try with HLS.js instead
+          setupHLS(url);
+        });
+      } else {
+        // Use HLS.js
+        setupHLS(url);
       }
     }
     
-    // Function to load stream using HLS.js
-    function loadWithHLS(url) {
+    // Function to setup HLS.js
+    function setupHLS(url) {
       if (Hls.isSupported()) {
-        window.hls = new Hls(hlsConfig);
-        
-        window.hls.loadSource(url);
-        window.hls.attachMedia(video);
-        
-        window.hls.on(Hls.Events.MANIFEST_PARSED, function() {
-          hideLoading();
-          video.play().catch(e => {
-            console.log('Playback error:', e);
-            // Auto-mute and retry if autoplay was blocked
-            if (e.name === 'NotAllowedError') {
-              video.muted = true;
-              updateMuteButton();
-              video.play().catch(err => {
-                showError("Playback error: " + err.message);
-              });
-            }
-          });
-          
-          // Notify parent when video starts playing
-          try {
-            window.parent.postMessage('videoPlaying', '*');
-          } catch (e) {
-            console.error('Could not send playing message to parent:', e);
+        const hls = new Hls({
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          fragLoadingTimeOut: 8000, // Reduced timeout
+          manifestLoadingTimeOut: 8000, // Reduced timeout
+          levelLoadingTimeOut: 8000, // Reduced timeout
+          startLevel: 0, // Start with lowest quality for faster loading
+          progressive: true, // Enable progressive loading
+          lowLatencyMode: true,
+          xhrSetup: function(xhr) {
+            xhr.setRequestHeader('Cache-Control', 'no-cache');
           }
         });
         
-        window.hls.on(Hls.Events.ERROR, function(event, data) {
-          console.error('HLS error:', data);
-          
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          hideLoading();
+          video.play()
+            .then(() => {
+              notifyParentPlaying();
+            })
+            .catch(e => {
+              console.error('HLS playback error:', e);
+              if (e.name === 'NotAllowedError') {
+                // Autoplay with sound blocked, try muted
+                video.muted = true;
+                updateMuteButton();
+                video.play()
+                  .then(() => {
+                    notifyParentPlaying();
+                    showMessage('Autoplay muted. Click to unmute.');
+                  })
+                  .catch(err => {
+                    showError('Playback blocked by browser');
+                  });
+              } else {
+                showError('Playback error: ' + e.message);
+              }
+            });
+        });
+        
+        hls.on(Hls.Events.ERROR, function(event, data) {
           if (data.fatal) {
+            console.error('HLS error:', data);
             switch(data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
-                console.log('Fatal network error encountered, trying to recover');
-                window.hls.startLoad();
-                
-                retryCount++;
-                if (retryCount >= MAX_RETRIES) {
-                  retryCount = 0;
-                  tryNextSource();
-                }
+                hls.startLoad(); // Try to recover
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
-                console.log('Fatal media error encountered, trying to recover');
-                window.hls.recoverMediaError();
+                hls.recoverMediaError(); // Try to recover
                 break;
               default:
-                // Try next source immediately on fatal error
+                // Fatal error, try next source
                 tryNextSource();
                 break;
             }
           }
         });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // For Safari which has native HLS support
-        video.src = url;
-        video.addEventListener('loadedmetadata', function() {
-          hideLoading();
-          video.play().catch(e => {
-            console.log('Playback error:', e);
-            showError("Playback error: " + e.message);
-          });
-          
-          // Notify parent when video starts playing
-          try {
-            window.parent.postMessage('videoPlaying', '*');
-          } catch (e) {
-            console.error('Could not send playing message to parent:', e);
-          }
-        });
-        
-        video.addEventListener('error', function() {
-          // Try next source immediately on error
-          tryNextSource();
-        });
       } else {
-        showError("Your browser doesn't support HLS playback");
+        // HLS not supported and direct playback failed
+        showError('Your browser does not support HLS playback');
       }
     }
     
-    // Function to retry loading the stream
-    function retryStream() {
-      // Add timestamp to force reload
-      const timestamp = new Date().getTime();
-      const currentSource = alternativeSources[currentSourceIndex];
-      const separator = currentSource.includes('?') ? '&' : '?';
-      const refreshedUrl = `${currentSource}${separator}_t=${timestamp}`;
-      
-      alternativeSources[currentSourceIndex] = refreshedUrl;
-      loadStream(refreshedUrl);
+    // Function to try next source
+    function tryNextSource() {
+      currentSourceIndex = (currentSourceIndex + 1) % sources.length;
+      showMessage(`Trying source ${currentSourceIndex + 1}/${sources.length}`);
+      loadStream(sources[currentSourceIndex]);
     }
     
-    // Initialize stream
-    if (alternativeSources.length > 0) {
-      loadStream(alternativeSources[currentSourceIndex]);
-    } else {
-      showError("No stream URL provided");
+    // Function to retry current source
+    function retryCurrentSource() {
+      // Add new timestamp to force refresh
+      const timestamp = Date.now();
+      sources[currentSourceIndex] = addTimestamp(sources[currentSourceIndex].split('?')[0], timestamp);
+      loadStream(sources[currentSourceIndex]);
     }
     
-    // Notify parent when video starts playing
-    video.addEventListener('playing', function() {
-      hideLoading();
+    // Function to notify parent that video is playing
+    function notifyParentPlaying() {
       try {
         window.parent.postMessage('videoPlaying', '*');
       } catch (e) {
-        console.error('Could not send playing message to parent:', e);
+        console.error('Error sending message to parent:', e);
       }
+    }
+    
+    // Function to update mute button
+    function updateMuteButton() {
+      muteBtn.textContent = video.muted ? '🔇' : '🔊';
+    }
+    
+    // Function to update play/pause button
+    function updatePlayPauseButton() {
+      playPauseBtn.textContent = video.paused ? '▶️' : '⏸️';
+    }
+    
+    // Event listeners
+    video.addEventListener('playing', function() {
+      hideLoading();
+      updatePlayPauseButton();
+      notifyParentPlaying();
     });
     
-    // Handle video errors
+    video.addEventListener('pause', function() {
+      updatePlayPauseButton();
+    });
+    
     video.addEventListener('error', function() {
-      const errorCode = video.error ? video.error.code : 0;
-      const errorMessage = video.error ? video.error.message : "Unknown error";
-      console.error(`Video error (${errorCode}): ${errorMessage}`);
-      
-      // Try next source automatically on error
+      console.error('Video error:', video.error);
       tryNextSource();
     });
     
-    // Custom controls functionality
-    function updatePlayPauseButton() {
-      if (video.paused) {
-        playPauseBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>';
-      } else {
-        playPauseBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>';
-      }
-    }
-    
-    function updateMuteButton() {
-      if (video.muted) {
-        muteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"></path></svg>';
-      } else {
-        muteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>';
-      }
-    }
-    
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        videoContainer.requestFullscreen().catch(err => {
-          console.error(`Error attempting to enable fullscreen: ${err.message}`);
-        });
-      } else {
-        document.exitFullscreen();
-      }
-    }
-    
-    function updateProgressBar() {
-      if (video.duration) {
-        const percentage = (video.currentTime / video.duration) * 100;
-        progressBar.style.width = `${percentage}%`;
-        
-        // Update time display
-        const currentMinutes = Math.floor(video.currentTime / 60);
-        const currentSeconds = Math.floor(video.currentTime % 60);
-        const totalMinutes = Math.floor(video.duration / 60);
-        const totalSeconds = Math.floor(video.duration % 60);
-        
-        timeDisplay.textContent = `${currentMinutes.toString().padStart(2, '0')}:${currentSeconds.toString().padStart(2, '0')} / ${totalMinutes.toString().padStart(2, '0')}:${totalSeconds.toString().padStart(2, '0')}`;
-      }
-    }
-    
-    function toggleSourceSelector() {
-      sourceSelector.classList.toggle('show');
-    }
-    
-    // Event listeners for custom controls
+    // Control button listeners
     playPauseBtn.addEventListener('click', function() {
       if (video.paused) {
         video.play();
-        showOverlayMessage('Playing');
       } else {
         video.pause();
-        showOverlayMessage('Paused');
       }
       updatePlayPauseButton();
     });
@@ -846,103 +552,58 @@
     muteBtn.addEventListener('click', function() {
       video.muted = !video.muted;
       updateMuteButton();
-      showOverlayMessage(video.muted ? 'Muted' : 'Unmuted');
+      showMessage(video.muted ? 'Muted' : 'Unmuted');
+    });
+    
+    refreshBtn.addEventListener('click', function() {
+      retryCurrentSource();
     });
     
     fullscreenBtn.addEventListener('click', function() {
-      toggleFullscreen();
-      showOverlayMessage(document.fullscreenElement ? 'Fullscreen' : 'Exit Fullscreen');
-    });
-    
-    sourceBtn.addEventListener('click', toggleSourceSelector);
-    
-    // Source selector options
-    sourceOptions.forEach(option => {
-      option.addEventListener('click', function() {
-        const index = parseInt(this.getAttribute('data-index'));
-        if (index !== currentSourceIndex) {
-          currentSourceIndex = index;
-          
-          // Update active class
-          sourceOptions.forEach((opt, i) => {
-            if (i === index) {
-              opt.classList.add('active');
-            } else {
-              opt.classList.remove('active');
-            }
-          });
-          
-          showOverlayMessage(`Switched to Source ${index + 1}`);
-          loadStream(alternativeSources[index]);
-        }
-        
-        sourceSelector.classList.remove('show');
-      });
-    });
-    
-    progressContainer.addEventListener('mousemove', function(e) {
-      const rect = progressContainer.getBoundingClientRect();
-      const pos = (e.clientX - rect.left) / rect.width;
-      
-      if (video.duration) {
-        const time = pos * video.duration;
-        const minutes = Math.floor(time / 60);
-        const seconds = Math.floor(time % 60);
-        
-        progressHover.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        progressHover.style.left = `${pos * 100}%`;
+      if (!document.fullscreenElement) {
+        videoContainer.requestFullscreen().catch(err => {
+          console.error('Fullscreen error:', err);
+        });
+      } else {
+        document.exitFullscreen();
       }
     });
     
-    progressContainer.addEventListener('click', function(e) {
-      const rect = progressContainer.getBoundingClientRect();
-      const pos = (e.clientX - rect.left) / rect.width;
-      
-      if (video.duration) {
-        video.currentTime = pos * video.duration;
+    // Retry button
+    retryBtn.addEventListener('click', function() {
+      retryCurrentSource();
+    });
+    
+    // Next source button
+    nextSourceBtn.addEventListener('click', function() {
+      tryNextSource();
+    });
+    
+    // Listen for messages from parent
+    window.addEventListener('message', function(event) {
+      if (event.data === 'toggleMute') {
+        video.muted = !video.muted;
+        updateMuteButton();
+        showMessage(video.muted ? 'Muted' : 'Unmuted');
       }
     });
     
-    video.addEventListener('timeupdate', updateProgressBar);
-    video.addEventListener('play', updatePlayPauseButton);
-    video.addEventListener('pause', updatePlayPauseButton);
-    
-    // Initialize button states
-    updatePlayPauseButton();
-    updateMuteButton();
-    
-    // Double click to toggle fullscreen
-    videoContainer.addEventListener('dblclick', toggleFullscreen);
-    
-    // Space bar to toggle play/pause
-    document.addEventListener('keydown', function(e) {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (video.paused) {
-          video.play();
-        } else {
-          video.pause();
-        }
-        updatePlayPauseButton();
+    // Double click for fullscreen
+    videoContainer.addEventListener('dblclick', function() {
+      if (!document.fullscreenElement) {
+        videoContainer.requestFullscreen().catch(err => {
+          console.error('Fullscreen error:', err);
+        });
+      } else {
+        document.exitFullscreen();
       }
     });
     
-    // Handle mobile devices
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      // Add tap to play/pause
-      videoContainer.addEventListener('click', function(e) {
-        // Don't trigger if clicking on controls
-        if (e.target.closest('.video-controls') || e.target.closest('.source-selector')) {
-          return;
-        }
-        
-        if (video.paused) {
-          video.play();
-        } else {
-          video.pause();
-        }
-        updatePlayPauseButton();
-      });
+    // Start loading the first source
+    if (sources.length > 0) {
+      loadStream(sources[currentSourceIndex]);
+    } else {
+      showError('No stream URL provided');
     }
   </script>
 </body>

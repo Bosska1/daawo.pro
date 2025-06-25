@@ -95,13 +95,16 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
 
   // Create stream URL with timestamp to prevent caching
   const getStreamUrl = () => {
-    if (!tv.stream_url) return '';
+    if (!tv.stream_url) {
+      // If no stream URL, use a fallback
+      return `/stream-player.html?_t=${Date.now()}`;
+    }
     
     const timestamp = new Date().getTime();
     const streamUrl = tv.stream_url;
     
     // Create URL for our custom stream player
-    return `/stream-player.html?url=${encodeURIComponent(streamUrl)}&muted=${isMuted}&_t=${timestamp}`;
+    return `/stream-player.html?url=${encodeURIComponent(streamUrl)}&_t=${timestamp}`;
   };
 
   return (

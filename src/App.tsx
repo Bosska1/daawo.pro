@@ -11,6 +11,7 @@ import { AdminPage } from '@/pages/admin-page';
 import { Header } from '@/components/header';
 import { Navbar } from '@/components/navbar';
 import { Toaster } from '@/components/ui/toaster';
+import { Advertisement } from '@/components/advertisement';
 import './App.css';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
                   </Routes>
                 </main>
                 <Navbar />
+                <Advertisement />
               </>
             }
           />

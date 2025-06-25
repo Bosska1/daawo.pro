@@ -129,3 +129,20 @@ iframe {
 .card-hover {
   @apply transition-all duration-300 hover:translate-y-[-5px] hover:shadow-lg;
 }
+
+/* Ad content styling */
+.ad-content {
+  @apply flex flex-col items-center text-center;
+}
+
+.ad-content h3 {
+  @apply text-xl font-bold mb-2 gradient-text;
+}
+
+.ad-content p {
+  @apply text-gray-300 mb-4;
+}
+
+.ad-content button {
+  @apply px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/80 transition-colors;
+}

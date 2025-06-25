@@ -17,12 +17,21 @@
       color: white;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
     }
+    
+    #videoContainer {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+    }
+    
     #videoPlayer {
       width: 100%;
       height: 100%;
       object-fit: contain;
       background-color: #000;
     }
+    
     .error-container {
       position: absolute;
       top: 0;
@@ -37,17 +46,20 @@
       background-color: rgba(0, 0, 0, 0.8);
       z-index: 10;
     }
+    
     .error-icon {
       font-size: 48px;
       margin-bottom: 16px;
       color: #f43f5e;
     }
+    
     .error-message {
       font-size: 18px;
       margin-bottom: 16px;
       text-align: center;
       max-width: 80%;
     }
+    
     .error-button {
       background-color: #38ef7d;
       color: #000;
@@ -57,7 +69,14 @@
       cursor: pointer;
       font-weight: bold;
       margin-top: 10px;
+      transition: all 0.2s ease;
     }
+    
+    .error-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(56, 239, 125, 0.3);
+    }
+    
     .loading-container {
       position: absolute;
       top: 0;
@@ -71,37 +90,80 @@
       background-color: #000;
       z-index: 5;
     }
+    
     .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(56, 239, 125, 0.2);
-      border-radius: 50%;
-      border-top-color: #38ef7d;
-      animation: spin 1s linear infinite;
+      position: relative;
+      width: 60px;
+      height: 60px;
       margin-bottom: 20px;
     }
+    
+    .spinner-ring {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 4px solid rgba(56, 239, 125, 0.2);
+      border-radius: 50%;
+    }
+    
+    .spinner-circle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 4px solid transparent;
+      border-top-color: #38ef7d;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    .spinner-inner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: #38ef7d;
+    }
+    
+    .loading-text {
+      font-size: 16px;
+      margin-top: 10px;
+      color: #d1d5db;
+    }
+    
+    .loading-progress {
+      font-size: 14px;
+      margin-top: 5px;
+      color: #9ca3af;
+    }
+    
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
     
-    /* Direct video controls styling */
+    /* Video controls */
     .video-controls {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-      padding: 10px;
+      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+      padding: 15px 10px 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s ease;
       z-index: 20;
     }
     
-    .video-container:hover .video-controls {
+    #videoContainer:hover .video-controls,
+    .video-controls:hover {
       opacity: 1;
     }
     
@@ -116,11 +178,12 @@
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      transition: background-color 0.2s;
+      transition: all 0.2s ease;
     }
     
     .control-button:hover {
-      background-color: rgba(255,255,255,0.1);
+      background-color: rgba(56, 239, 125, 0.2);
+      transform: scale(1.1);
     }
     
     .control-button svg {
@@ -130,83 +193,197 @@
     
     .progress-container {
       flex-grow: 1;
-      margin: 0 10px;
-      height: 5px;
+      margin: 0 15px;
+      height: 6px;
       background-color: rgba(255,255,255,0.2);
-      border-radius: 5px;
+      border-radius: 3px;
       overflow: hidden;
       cursor: pointer;
+      position: relative;
     }
     
     .progress-bar {
       height: 100%;
-      background-color: #38ef7d;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
       width: 0%;
+      border-radius: 3px;
+      transition: width 0.1s linear;
     }
     
-    .fallback-message {
+    .progress-hover {
+      position: absolute;
+      top: -25px;
+      background-color: rgba(0,0,0,0.8);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      transform: translateX(-50%);
+      display: none;
+    }
+    
+    .progress-container:hover .progress-hover {
+      display: block;
+    }
+    
+    .time-display {
+      font-size: 14px;
+      color: #d1d5db;
+      margin: 0 10px;
+      min-width: 80px;
       text-align: center;
-      padding: 20px;
-      background-color: rgba(0,0,0,0.7);
-      border-radius: 8px;
-      max-width: 80%;
-      margin: 0 auto;
     }
     
-    .fallback-button {
-      background-color: #38ef7d;
-      color: #000;
-      border: none;
-      padding: 10px 20px;
+    /* Mobile optimizations */
+    @media (max-width: 640px) {
+      .video-controls {
+        padding: 10px 5px 5px;
+      }
+      
+      .control-button {
+        width: 36px;
+        height: 36px;
+      }
+      
+      .control-button svg {
+        width: 20px;
+        height: 20px;
+      }
+      
+      .time-display {
+        font-size: 12px;
+        min-width: 60px;
+      }
+      
+      .progress-container {
+        margin: 0 8px;
+        height: 4px;
+      }
+    }
+    
+    /* Overlay message */
+    .overlay-message {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0,0,0,0.8);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      z-index: 30;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .overlay-message.show {
+      opacity: 1;
+    }
+    
+    /* Source selector */
+    .source-selector {
+      position: absolute;
+      bottom: 70px;
+      right: 20px;
+      background-color: rgba(0,0,0,0.8);
+      border-radius: 8px;
+      padding: 10px;
+      z-index: 25;
+      display: none;
+    }
+    
+    .source-selector.show {
+      display: block;
+    }
+    
+    .source-option {
+      padding: 8px 12px;
+      margin: 5px 0;
       border-radius: 4px;
       cursor: pointer;
-      font-weight: bold;
-      margin-top: 15px;
-      transition: background-color 0.2s;
+      transition: all 0.2s ease;
+      color: #d1d5db;
     }
     
-    .fallback-button:hover {
-      background-color: #2fd66a;
+    .source-option:hover {
+      background-color: rgba(56, 239, 125, 0.2);
+      color: white;
+    }
+    
+    .source-option.active {
+      background-color: rgba(56, 239, 125, 0.3);
+      color: #38ef7d;
     }
   </style>
 </head>
 <body>
-  <div id="videoContainer" class="video-container">
-    <video id="videoPlayer" controls autoplay playsinline></video>
+  <div id="videoContainer">
+    <video id="videoPlayer" playsinline></video>
     
-    <!-- Custom video controls (optional) -->
+    <!-- Custom video controls -->
     <div class="video-controls">
       <button class="control-button" id="playPauseBtn">
         <svg viewBox="0 0 24 24" fill="currentColor">
           <path d="M8 5v14l11-7z"></path>
         </svg>
       </button>
+      
       <div class="progress-container" id="progressContainer">
         <div class="progress-bar" id="progressBar"></div>
+        <div class="progress-hover" id="progressHover">00:00</div>
       </div>
+      
+      <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
+      
       <button class="control-button" id="muteBtn">
         <svg viewBox="0 0 24 24" fill="currentColor">
           <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
         </svg>
       </button>
+      
+      <button class="control-button" id="sourceBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
+        </svg>
+      </button>
+      
       <button class="control-button" id="fullscreenBtn">
         <svg viewBox="0 0 24 24" fill="currentColor">
           <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"></path>
         </svg>
       </button>
     </div>
+    
+    <!-- Source selector -->
+    <div class="source-selector" id="sourceSelector">
+      <div class="source-option active" data-index="0">Source 1 (Default)</div>
+      <div class="source-option" data-index="1">Source 2</div>
+      <div class="source-option" data-index="2">Source 3</div>
+      <div class="source-option" data-index="3">Source 4</div>
+    </div>
+    
+    <!-- Overlay message -->
+    <div class="overlay-message" id="overlayMessage">Message</div>
   </div>
   
   <div id="loadingContainer" class="loading-container">
-    <div class="spinner"></div>
-    <div>Loading stream...</div>
+    <div class="spinner">
+      <div class="spinner-ring"></div>
+      <div class="spinner-circle"></div>
+      <div class="spinner-inner">▶</div>
+    </div>
+    <div class="loading-text">Loading stream...</div>
+    <div class="loading-progress" id="loadingProgress">0%</div>
   </div>
   
   <div id="errorContainer" class="error-container" style="display: none;">
     <div class="error-icon">⚠️</div>
-    <div class="error-message">Stream loading error</div>
+    <div class="error-message" id="errorMessage">Stream loading error</div>
     <button class="error-button" onclick="retryStream()">Try Again</button>
-    <button class="error-button" onclick="tryDirectPlay()" style="margin-top: 10px; background-color: #3b82f6;">Try Direct Play</button>
+    <button class="error-button" onclick="tryNextSource()" style="margin-top: 10px; background: linear-gradient(to right, #3b82f6, #38ef7d);">
+      Try Another Source
+    </button>
   </div>
 
   <script>
@@ -215,38 +392,66 @@
     const streamUrl = urlParams.get('url');
     const muted = urlParams.get('muted') === 'true';
     
+    // DOM elements
     const video = document.getElementById('videoPlayer');
     const errorContainer = document.getElementById('errorContainer');
+    const errorMessage = document.getElementById('errorMessage');
     const loadingContainer = document.getElementById('loadingContainer');
+    const loadingProgress = document.getElementById('loadingProgress');
     const videoContainer = document.getElementById('videoContainer');
+    const overlayMessage = document.getElementById('overlayMessage');
+    const sourceSelector = document.getElementById('sourceSelector');
     
-    // Custom controls elements
+    // Control elements
     const playPauseBtn = document.getElementById('playPauseBtn');
     const muteBtn = document.getElementById('muteBtn');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const sourceBtn = document.getElementById('sourceBtn');
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
+    const progressHover = document.getElementById('progressHover');
+    const timeDisplay = document.getElementById('timeDisplay');
     
     // Set initial muted state
     video.muted = muted;
     
     // Alternative stream sources
-    const alternativeSources = [
+    let alternativeSources = [
       streamUrl,
       streamUrl.replace('beIN_Sports1_HD-ar', 'beIN_Sports2_HD-ar'),
       streamUrl.replace('beIN_Sports1_HD-ar', 'beIN_Sports3_HD-ar'),
-      // Add more fallbacks if needed
-    ];
+      streamUrl.replace('beIN_Sports1_HD-ar', 'beIN_Sports4_HD-ar')
+    ].filter(Boolean);
+    
+    // Add timestamp to each URL to prevent caching
+    alternativeSources = alternativeSources.map(url => {
+      const timestamp = new Date().getTime();
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}_t=${timestamp}`;
+    });
+    
+    // Update source selector options
+    const sourceOptions = document.querySelectorAll('.source-option');
+    sourceOptions.forEach((option, index) => {
+      if (index < alternativeSources.length) {
+        option.textContent = `Source ${index + 1}${index === 0 ? ' (Default)' : ''}`;
+      } else {
+        option.style.display = 'none';
+      }
+    });
     
     let currentSourceIndex = 0;
     let retryCount = 0;
     const MAX_RETRIES = 3;
+    let progressInterval = null;
+    let loadingTimeout = null;
     
     // Listen for mute toggle messages from parent
     window.addEventListener('message', function(event) {
       if (event.data === 'toggleMute') {
         video.muted = !video.muted;
         updateMuteButton();
+        showOverlayMessage(video.muted ? 'Muted' : 'Unmuted');
       }
     });
     
@@ -254,68 +459,99 @@
     function showLoading() {
       loadingContainer.style.display = 'flex';
       errorContainer.style.display = 'none';
+      
+      // Start progress animation
+      let progress = 0;
+      loadingProgress.textContent = '0%';
+      
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+      
+      progressInterval = setInterval(() => {
+        progress += Math.random() * 3;
+        if (progress > 99) {
+          progress = 99;
+          clearInterval(progressInterval);
+        }
+        loadingProgress.textContent = `${Math.round(progress)}%`;
+      }, 200);
+      
+      // Set a timeout to hide loading after 10 seconds even if not loaded
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
+      
+      loadingTimeout = setTimeout(() => {
+        hideLoading();
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+      }, 10000);
     }
     
     // Function to hide loading indicator
     function hideLoading() {
       loadingContainer.style.display = 'none';
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        loadingTimeout = null;
+      }
     }
     
     // Function to show error message
     function showError(message) {
       hideLoading();
-      errorContainer.querySelector('.error-message').textContent = message || "Stream loading error";
+      errorMessage.textContent = message || "Stream loading error";
       errorContainer.style.display = 'flex';
+      
+      // Notify parent about error
+      try {
+        window.parent.postMessage('videoError', '*');
+      } catch (e) {
+        console.error('Could not send error message to parent:', e);
+      }
     }
     
-    // Function to try direct video playback without HLS.js
-    function tryDirectPlay() {
-      showLoading();
+    // Function to show overlay message
+    function showOverlayMessage(message) {
+      overlayMessage.textContent = message;
+      overlayMessage.classList.add('show');
       
-      // Clean up any existing HLS instance
-      if (window.hls) {
-        window.hls.destroy();
-        window.hls = null;
-      }
-      
-      // Set the video source directly
-      video.src = streamUrl;
-      video.load();
-      
-      video.addEventListener('loadeddata', function onceLoaded() {
-        hideLoading();
-        video.play().catch(e => {
-          console.log('Direct playback error:', e);
-          showError("Direct playback failed: " + e.message);
-        });
-        video.removeEventListener('loadeddata', onceLoaded);
-      });
-      
-      video.addEventListener('error', function onceError() {
-        showError("Direct playback failed. The stream may be unavailable.");
-        video.removeEventListener('error', onceError);
-      });
+      setTimeout(() => {
+        overlayMessage.classList.remove('show');
+      }, 2000);
     }
     
     // Function to try the next source
     function tryNextSource() {
       currentSourceIndex = (currentSourceIndex + 1) % alternativeSources.length;
+      
+      // Update active source in selector
+      sourceOptions.forEach((option, index) => {
+        if (index === currentSourceIndex) {
+          option.classList.add('active');
+        } else {
+          option.classList.remove('active');
+        }
+      });
+      
+      showOverlayMessage(`Switched to Source ${currentSourceIndex + 1}`);
       loadStream(alternativeSources[currentSourceIndex]);
     }
     
     // Function to load the stream
-    function loadStream(url = streamUrl) {
+    function loadStream(url) {
       showLoading();
       
       if (!url) {
         showError("No stream URL provided");
         return;
       }
-      
-      // Add timestamp to bypass cache
-      const timestamp = new Date().getTime();
-      const separator = url.includes('?') ? '&' : '?';
-      const urlWithTimestamp = `${url}${separator}_t=${timestamp}`;
       
       // Clean up any existing HLS instance
       if (window.hls) {
@@ -334,17 +570,16 @@
           enableWorker: true,
           lowLatencyMode: true,
           backBufferLength: 90,
-          fragLoadingTimeOut: 20000, // Longer timeout for slow connections
+          fragLoadingTimeOut: 20000,
           manifestLoadingTimeOut: 20000,
           levelLoadingTimeOut: 20000,
           xhrSetup: function(xhr) {
-            // Add cache-busting headers
             xhr.setRequestHeader('Cache-Control', 'no-cache');
             xhr.setRequestHeader('Pragma', 'no-cache');
           }
         });
         
-        window.hls.loadSource(urlWithTimestamp);
+        window.hls.loadSource(url);
         window.hls.attachMedia(video);
         
         window.hls.on(Hls.Events.MANIFEST_PARSED, function() {
@@ -362,7 +597,11 @@
           });
           
           // Notify parent when video starts playing
-          window.parent.postMessage('videoPlaying', '*');
+          try {
+            window.parent.postMessage('videoPlaying', '*');
+          } catch (e) {
+            console.error('Could not send playing message to parent:', e);
+          }
         });
         
         window.hls.on(Hls.Events.ERROR, function(event, data) {
@@ -371,11 +610,9 @@
           if (data.fatal) {
             switch(data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
-                // Try to recover network error
                 console.log('Fatal network error encountered, trying to recover');
                 window.hls.startLoad();
                 
-                // If multiple network errors, try next source
                 retryCount++;
                 if (retryCount >= MAX_RETRIES) {
                   retryCount = 0;
@@ -387,7 +624,6 @@
                 window.hls.recoverMediaError();
                 break;
               default:
-                // Cannot recover
                 showError("Stream loading error: " + (data.details || "unknown error"));
                 break;
             }
@@ -395,7 +631,7 @@
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // For Safari which has native HLS support
-        video.src = urlWithTimestamp;
+        video.src = url;
         video.addEventListener('loadedmetadata', function() {
           hideLoading();
           video.play().catch(e => {
@@ -404,13 +640,16 @@
           });
           
           // Notify parent when video starts playing
-          window.parent.postMessage('videoPlaying', '*');
+          try {
+            window.parent.postMessage('videoPlaying', '*');
+          } catch (e) {
+            console.error('Could not send playing message to parent:', e);
+          }
         });
         
         video.addEventListener('error', function() {
           showError("Stream loading error: " + (video.error ? video.error.message : "unknown error"));
           
-          // Try next source on error
           retryCount++;
           if (retryCount >= MAX_RETRIES) {
             retryCount = 0;
@@ -430,16 +669,21 @@
       const separator = currentSource.includes('?') ? '&' : '?';
       const refreshedUrl = `${currentSource}${separator}_t=${timestamp}`;
       
+      alternativeSources[currentSourceIndex] = refreshedUrl;
       loadStream(refreshedUrl);
     }
     
     // Initialize stream
-    loadStream();
+    loadStream(alternativeSources[currentSourceIndex]);
     
     // Notify parent when video starts playing
     video.addEventListener('playing', function() {
       hideLoading();
-      window.parent.postMessage('videoPlaying', '*');
+      try {
+        window.parent.postMessage('videoPlaying', '*');
+      } catch (e) {
+        console.error('Could not send playing message to parent:', e);
+      }
     });
     
     // Handle video errors
@@ -480,15 +724,29 @@
       if (video.duration) {
         const percentage = (video.currentTime / video.duration) * 100;
         progressBar.style.width = `${percentage}%`;
+        
+        // Update time display
+        const currentMinutes = Math.floor(video.currentTime / 60);
+        const currentSeconds = Math.floor(video.currentTime % 60);
+        const totalMinutes = Math.floor(video.duration / 60);
+        const totalSeconds = Math.floor(video.duration % 60);
+        
+        timeDisplay.textContent = `${currentMinutes.toString().padStart(2, '0')}:${currentSeconds.toString().padStart(2, '0')} / ${totalMinutes.toString().padStart(2, '0')}:${totalSeconds.toString().padStart(2, '0')}`;
       }
+    }
+    
+    function toggleSourceSelector() {
+      sourceSelector.classList.toggle('show');
     }
     
     // Event listeners for custom controls
     playPauseBtn.addEventListener('click', function() {
       if (video.paused) {
         video.play();
+        showOverlayMessage('Playing');
       } else {
         video.pause();
+        showOverlayMessage('Paused');
       }
       updatePlayPauseButton();
     });
@@ -496,14 +754,61 @@
     muteBtn.addEventListener('click', function() {
       video.muted = !video.muted;
       updateMuteButton();
+      showOverlayMessage(video.muted ? 'Muted' : 'Unmuted');
     });
     
-    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    fullscreenBtn.addEventListener('click', function() {
+      toggleFullscreen();
+      showOverlayMessage(document.fullscreenElement ? 'Fullscreen' : 'Exit Fullscreen');
+    });
+    
+    sourceBtn.addEventListener('click', toggleSourceSelector);
+    
+    // Source selector options
+    sourceOptions.forEach(option => {
+      option.addEventListener('click', function() {
+        const index = parseInt(this.getAttribute('data-index'));
+        if (index !== currentSourceIndex) {
+          currentSourceIndex = index;
+          
+          // Update active class
+          sourceOptions.forEach((opt, i) => {
+            if (i === index) {
+              opt.classList.add('active');
+            } else {
+              opt.classList.remove('active');
+            }
+          });
+          
+          showOverlayMessage(`Switched to Source ${index + 1}`);
+          loadStream(alternativeSources[index]);
+        }
+        
+        sourceSelector.classList.remove('show');
+      });
+    });
+    
+    progressContainer.addEventListener('mousemove', function(e) {
+      const rect = progressContainer.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      
+      if (video.duration) {
+        const time = pos * video.duration;
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        
+        progressHover.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        progressHover.style.left = `${pos * 100}%`;
+      }
+    });
     
     progressContainer.addEventListener('click', function(e) {
       const rect = progressContainer.getBoundingClientRect();
       const pos = (e.clientX - rect.left) / rect.width;
-      video.currentTime = pos * video.duration;
+      
+      if (video.duration) {
+        video.currentTime = pos * video.duration;
+      }
     });
     
     video.addEventListener('timeupdate', updateProgressBar);
@@ -514,20 +819,39 @@
     updatePlayPauseButton();
     updateMuteButton();
     
-    // Fallback for mobile devices
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      // Mobile devices often have issues with HLS.js, so we'll use native playback if possible
-      if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = streamUrl;
-        video.addEventListener('loadedmetadata', function() {
-          hideLoading();
-          video.play().catch(e => {
-            console.log('Mobile playback error:', e);
-            showError("Mobile playback error. Try tapping the screen to play.");
-          });
-        });
+    // Double click to toggle fullscreen
+    videoContainer.addEventListener('dblclick', toggleFullscreen);
+    
+    // Space bar to toggle play/pause
+    document.addEventListener('keydown', function(e) {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (video.paused) {
+          video.play();
+        } else {
+          video.pause();
+        }
+        updatePlayPauseButton();
       }
+    });
+    
+    // Handle mobile devices
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      // Add tap to play/pause
+      videoContainer.addEventListener('click', function(e) {
+        // Don't trigger if clicking on controls
+        if (e.target.closest('.video-controls') || e.target.closest('.source-selector')) {
+          return;
+        }
+        
+        if (video.paused) {
+          video.play();
+        } else {
+          video.pause();
+        }
+        updatePlayPauseButton();
+      });
     }
   </script>
 </body>
-  </html>
+</html>

@@ -48,7 +48,7 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
-    }, 6000); // Shorter timeout for better UX
+    }, 8000); // Longer timeout for better reliability
     
     // Listen for messages from the iframe
     const handleMessage = (event: MessageEvent) => {
@@ -93,10 +93,10 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
     
     progressIntervalRef.current = setInterval(() => {
       setLoadingProgress(prev => {
-        const next = prev + (100 - prev) * 0.2; // Faster progress
+        const next = prev + (100 - prev) * 0.1; // Slower progress for more reliability
         return Math.min(next, 99);
       });
-    }, 100);
+    }, 200);
   };
 
   const toggleFullscreen = () => {
@@ -147,7 +147,7 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
         }
-      }, 6000);
+      }, 8000);
     }
   };
 
@@ -210,49 +210,50 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
             <div className="flex flex-col items-center">
-              <div className="relative w-20 h-20">
+              <div className="relative w-24 h-24">
                 <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
                 <div className="absolute inset-0 rounded-full border-4 border-t-primary border-l-transparent border-r-transparent border-b-transparent animate-spin"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <PlayCircle className="h-8 w-8 text-primary animate-pulse" />
+                  <PlayCircle className="h-10 w-10 text-primary animate-pulse" />
                 </div>
-                <svg className="absolute inset-0" width="80" height="80" viewBox="0 0 80 80">
+                <svg className="absolute inset-0" width="96" height="96" viewBox="0 0 96 96">
                   <circle
                     className="text-gray-800"
                     strokeWidth="5"
                     stroke="currentColor"
                     fill="transparent"
-                    r="35"
-                    cx="40"
-                    cy="40"
+                    r="43"
+                    cx="48"
+                    cy="48"
                   />
                   <circle
                     className="text-primary"
                     strokeWidth="5"
-                    strokeDasharray={2 * Math.PI * 35}
-                    strokeDashoffset={2 * Math.PI * 35 * (1 - loadingProgress / 100)}
+                    strokeDasharray={2 * Math.PI * 43}
+                    strokeDashoffset={2 * Math.PI * 43 * (1 - loadingProgress / 100)}
                     strokeLinecap="round"
                     stroke="currentColor"
                     fill="transparent"
-                    r="35"
-                    cx="40"
-                    cy="40"
+                    r="43"
+                    cx="48"
+                    cy="48"
                   />
                 </svg>
               </div>
-              <p className="text-gray-400 mt-4">Loading channel... {Math.round(loadingProgress)}%</p>
+              <p className="text-gray-300 mt-4 text-lg">Loading channel...</p>
+              <p className="text-gray-400 mt-1">{Math.round(loadingProgress)}%</p>
             </div>
           </div>
         )}
         
         {streamError && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
-            <div className="flex flex-col items-center text-center p-6 max-w-md glass rounded-lg animate-float">
-              <div className="text-red-500 text-5xl mb-4">⚠️</div>
-              <h3 className="text-xl font-bold mb-2">Stream Error</h3>
-              <p className="text-gray-400 mb-4">Unable to load the channel. The source may be unavailable.</p>
-              <div className="flex gap-3">
-                <Button onClick={handleRefresh} variant="outline" className="glass">
+            <div className="flex flex-col items-center text-center p-8 max-w-md glass rounded-xl animate-float shadow-lg border border-gray-800">
+              <div className="text-red-500 text-6xl mb-6">⚠️</div>
+              <h3 className="text-2xl font-bold mb-4 gradient-text">Stream Error</h3>
+              <p className="text-gray-300 mb-6">Unable to load the channel. The source may be unavailable or your connection might be unstable.</p>
+              <div className="flex gap-4">
+                <Button onClick={handleRefresh} variant="outline" className="glass hover:bg-gray-800">
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Try Again
                 </Button>
@@ -285,15 +286,15 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
         <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none"></div>
         <div className="flex justify-between items-center relative z-10">
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/60 text-red-200 animate-pulse-glow">
-              <span className="w-2 h-2 mr-1.5 bg-red-500 rounded-full animate-pulse"></span>
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-900/60 text-red-200 animate-pulse-glow shadow-lg">
+              <span className="w-2 h-2 mr-2 bg-red-500 rounded-full animate-pulse"></span>
               Live Now!
             </span>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={switchSource}
-              className="text-xs text-primary hover:text-primary/80"
+              className="text-sm text-primary hover:text-primary/80 hover:bg-gray-800"
             >
               Switch Source ({currentSourceIndex + 1}/{streamSources.length})
             </Button>

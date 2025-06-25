@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Match } from '@/lib/supabase';
 import { formatDate, formatTime, formatMatchTime } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
-import { Play } from 'lucide-react';
+import { Play, Clock, Calendar, Trophy, ExternalLink } from 'lucide-react';
 
 interface MatchCardProps {
   match: Match;
@@ -15,6 +15,7 @@ interface MatchCardProps {
 export function MatchCard({ match, onWatchClick }: MatchCardProps) {
   const { toast } = useToast();
   const [showAd, setShowAd] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   
   const handleWatchClick = () => {
     if (onWatchClick) {
@@ -37,55 +38,66 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
   };
 
   return (
-    <Card className="w-full bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-300 overflow-hidden relative group">
-      <CardContent className="p-4">
-        <div className="flex flex-col space-y-3">
+    <Card 
+      className={`w-full bg-gradient-to-br from-gray-900 to-gray-800 border-gray-800 hover:border-primary/50 transition-all duration-300 overflow-hidden relative group rounded-xl shadow-lg ${isHovered ? 'shadow-primary/20' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <CardContent className="p-5">
+        <div className="flex flex-col space-y-4">
           {/* Competition */}
           <div className="flex items-center justify-center">
-            <span className="text-sm text-gray-400">
-              🏆 {match.competition?.name}
+            <span className="text-sm text-gray-400 flex items-center">
+              <Trophy className="h-4 w-4 mr-1.5 text-primary/70" />
+              {match.competition?.name}
             </span>
           </div>
           
           {/* Teams */}
           <div className="flex items-center justify-between">
-            <div className="flex flex-col items-center space-y-1 w-2/5">
-              <span className="text-xl">{match.team_a?.flag}</span>
+            <div className="flex flex-col items-center space-y-2 w-2/5">
+              <span className="text-2xl">{match.team_a?.flag}</span>
               <span className="text-base font-semibold text-center">{match.team_a?.name}</span>
             </div>
             
             {match.status === 'finished' ? (
               <div className="flex flex-col items-center justify-center w-1/5">
-                <div className="flex items-center justify-center bg-gray-800 rounded-lg px-3 py-1">
+                <div className="flex items-center justify-center bg-gray-800/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-inner">
                   <span className="text-xl font-bold text-primary">{match.score_team_a}</span>
                   <span className="text-gray-400 mx-2">-</span>
                   <span className="text-xl font-bold text-primary">{match.score_team_b}</span>
                 </div>
-                <span className="text-xs text-gray-500 mt-1">Final Score</span>
+                <span className="text-xs text-gray-500 mt-2 flex items-center">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  Final Score
+                </span>
               </div>
             ) : match.status === 'live' ? (
               <div className="flex flex-col items-center justify-center w-1/5">
-                <div className="flex items-center justify-center bg-red-900/30 rounded-lg px-3 py-1">
+                <div className="flex items-center justify-center bg-red-900/30 backdrop-blur-sm rounded-lg px-4 py-2 shadow-inner border border-red-900/30">
                   <span className="text-xl font-bold text-white">{match.score_team_a || 0}</span>
                   <span className="text-gray-400 mx-2">-</span>
                   <span className="text-xl font-bold text-white">{match.score_team_b || 0}</span>
                 </div>
-                <span className="inline-flex items-center text-xs text-red-400 mt-1">
+                <span className="inline-flex items-center text-xs text-red-400 mt-2">
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse mr-1"></span>
                   LIVE
                 </span>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center w-1/5">
-                <div className="flex items-center justify-center bg-gray-800 rounded-lg px-3 py-1">
+                <div className="flex items-center justify-center bg-gray-800/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-inner">
                   <span className="text-gray-400">VS</span>
                 </div>
-                <span className="text-xs text-gray-500 mt-1">{formatTime(match.kickoff_time)}</span>
+                <span className="text-xs text-gray-500 mt-2 flex items-center">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {formatTime(match.kickoff_time)}
+                </span>
               </div>
             )}
             
-            <div className="flex flex-col items-center space-y-1 w-2/5">
-              <span className="text-xl">{match.team_b?.flag}</span>
+            <div className="flex flex-col items-center space-y-2 w-2/5">
+              <span className="text-2xl">{match.team_b?.flag}</span>
               <span className="text-base font-semibold text-center">{match.team_b?.name}</span>
             </div>
           </div>
@@ -93,21 +105,23 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
           {/* Match Info */}
           <div className="flex items-center justify-center">
             {match.status === 'upcoming' && (
-              <span className="text-sm text-gray-400">
-                ⏳ {formatMatchTime(match.kickoff_time)}
+              <span className="text-sm text-gray-400 flex items-center">
+                <Clock className="h-4 w-4 mr-1.5 text-yellow-500/70" />
+                {formatMatchTime(match.kickoff_time)}
               </span>
             )}
             
             {match.status === 'finished' && (
-              <span className="text-sm text-gray-400">
-                📅 {formatDate(match.kickoff_time)}
+              <span className="text-sm text-gray-400 flex items-center">
+                <Calendar className="h-4 w-4 mr-1.5 text-green-500/70" />
+                {formatDate(match.kickoff_time)}
               </span>
             )}
           </div>
         </div>
       </CardContent>
       
-      <CardFooter className="p-4 pt-0 flex justify-center">
+      <CardFooter className="p-5 pt-0 flex justify-center">
         {match.status === 'live' && (
           <Button 
             variant="glow" 
@@ -120,44 +134,65 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
         
         {match.status === 'upcoming' && (
           <Button variant="outline" className="w-full" disabled>
-            ⏳ Not Started
+            <Clock className="h-4 w-4 mr-2" /> Not Started
           </Button>
         )}
         
         {match.status === 'finished' && match.highlights_url && (
           <Button 
             variant="outline" 
-            className="w-full"
+            className="w-full hover:bg-gray-800"
             onClick={() => window.open(match.highlights_url, '_blank')}
           >
-            🎥 Watch Highlights
+            <ExternalLink className="h-4 w-4 mr-2" /> Watch Highlights
           </Button>
         )}
       </CardFooter>
       
       {/* Live Indicator */}
       {match.status === 'live' && (
-        <div className="absolute top-2 right-2">
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900/60 text-red-200">
+        <div className="absolute top-3 right-3">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-900/60 backdrop-blur-sm text-red-200 shadow-lg">
             <span className="w-1.5 h-1.5 mr-1 bg-red-500 rounded-full animate-pulse"></span>
             LIVE
           </span>
         </div>
       )}
       
+      {/* Upcoming Indicator */}
+      {match.status === 'upcoming' && (
+        <div className="absolute top-3 right-3">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-900/40 backdrop-blur-sm text-yellow-200 shadow-lg">
+            <Clock className="h-3 w-3 mr-1" />
+            UPCOMING
+          </span>
+        </div>
+      )}
+      
+      {/* Finished Indicator */}
+      {match.status === 'finished' && (
+        <div className="absolute top-3 right-3">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-900/40 backdrop-blur-sm text-green-200 shadow-lg">
+            <Calendar className="h-3 w-3 mr-1" />
+            FINISHED
+          </span>
+        </div>
+      )}
+      
       {/* Ad Popup */}
       {showAd && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 max-w-md w-full relative">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full relative shadow-2xl">
             <button 
-              className="absolute top-2 right-2 text-gray-400 hover:text-white"
+              className="absolute top-3 right-3 text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-full p-1.5 transition-colors"
               onClick={closeAd}
             >
               ✕
             </button>
-            <h3 className="text-xl font-bold mb-4 text-center">Enjoying the Match?</h3>
+            <div className="text-center mb-4 text-primary text-4xl">📱</div>
+            <h3 className="text-xl font-bold mb-4 text-center bg-gradient-to-r from-blue-500 to-green-400 bg-clip-text text-transparent">Enjoying the Match?</h3>
             <p className="text-gray-300 mb-6 text-center">
-              Follow Us on Telegram for More Free Streams!
+              Follow Us on Telegram for More Free Streams and Exclusive Content!
             </p>
             <div className="flex justify-center">
               <Button 

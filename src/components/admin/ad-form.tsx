@@ -167,7 +167,7 @@ export function AdForm({ ad, onSuccess, onCancel }: AdFormProps) {
                 <SelectValue placeholder="All pages" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All pages</SelectItem>
+                <SelectItem value="all">All pages</SelectItem>
                 <SelectItem value="/">Home Page</SelectItem>
                 <SelectItem value="/live">Live Matches</SelectItem>
                 <SelectItem value="/tv">Live TV</SelectItem>

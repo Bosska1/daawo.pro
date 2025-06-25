@@ -6,6 +6,7 @@ import { LivePage } from '@/pages/live-page';
 import { UpcomingPage } from '@/pages/upcoming-page';
 import { FinishedPage } from '@/pages/finished-page';
 import { LiveTVsPage } from '@/pages/live-tvs-page';
+import { FavoritesPage } from '@/pages/favorites-page';
 import { AdminPage } from '@/pages/admin-page';
 import { Header } from '@/components/header';
 import { Navbar } from '@/components/navbar';
@@ -30,6 +31,7 @@ function App() {
                     <Route path="/upcoming" element={<UpcomingPage />} />
                     <Route path="/finished" element={<FinishedPage />} />
                     <Route path="/tv" element={<LiveTVsPage />} />
+                    <Route path="/favorites" element={<FavoritesPage />} />
                   </Routes>
                 </main>
                 <Navbar />

@@ -164,7 +164,7 @@ export function MatchForm({ match, onSuccess, onCancel }: MatchFormProps) {
               </SelectTrigger>
               <SelectContent>
                 {teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
+                  <SelectItem key={team.id} value={team.id || "default-value"}>
                     {team.flag} {team.name}
                   </SelectItem>
                 ))}
@@ -184,7 +184,7 @@ export function MatchForm({ match, onSuccess, onCancel }: MatchFormProps) {
               </SelectTrigger>
               <SelectContent>
                 {teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
+                  <SelectItem key={team.id} value={team.id || "default-value"}>
                     {team.flag} {team.name}
                   </SelectItem>
                 ))}
@@ -205,7 +205,7 @@ export function MatchForm({ match, onSuccess, onCancel }: MatchFormProps) {
             </SelectTrigger>
             <SelectContent>
               {competitions.map((comp) => (
-                <SelectItem key={comp.id} value={comp.id}>
+                <SelectItem key={comp.id} value={comp.id || "default-value"}>
                   {comp.name}
                 </SelectItem>
               ))}

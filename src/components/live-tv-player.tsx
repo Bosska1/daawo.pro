@@ -36,28 +36,28 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
     setIsLoading(true);
     setStreamError(false);
     
-    // Set a timeout to show error if stream doesn't load
-    const timeout = setTimeout(() => {
-      setStreamError(true);
-      setIsLoading(false);
-    }, 15000);
-    
     // Listen for messages from the iframe
     window.addEventListener('message', function handleMessage(event) {
       if (event.data === 'videoPlaying') {
-        clearTimeout(timeout);
         setIsLoading(false);
         setStreamError(false);
         // Remove the event listener once we've received the message
         window.removeEventListener('message', handleMessage);
       } else if (event.data === 'videoError') {
-        clearTimeout(timeout);
         setStreamError(true);
         setIsLoading(false);
         // Remove the event listener once we've received the message
         window.removeEventListener('message', handleMessage);
       }
     });
+    
+    // Set a timeout to show error if stream doesn't load
+    setTimeout(() => {
+      if (isLoading) {
+        setStreamError(true);
+        setIsLoading(false);
+      }
+    }, 15000);
   };
 
   const toggleFullscreen = () => {
@@ -90,12 +90,6 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
       iframeRef.current.src = newSrc;
       setIsLoading(true);
       setStreamError(false);
-      
-      // Set a timeout to show error if stream doesn't load after refresh
-      setTimeout(() => {
-        setStreamError(true);
-        setIsLoading(false);
-      }, 15000);
     }
   };
 
@@ -156,12 +150,36 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
           </div>
         )}
         
+        {streamError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+            <div className="bg-gray-900/90 p-6 rounded-xl max-w-md text-center">
+              <div className="text-yellow-500 text-5xl mb-4">⚠️</div>
+              <h3 className="text-xl font-bold mb-3">Stream Error</h3>
+              <p className="text-gray-300 mb-4">
+                Unable to load the channel. The source may be unavailable.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={handleRefresh} className="flex items-center">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+                <Button onClick={onBack} variant="outline">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Go Back
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <iframe
           ref={iframeRef}
           src={getStreamUrl()}
           className="w-full h-full border-0"
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
+          loading="eager"
+          sandbox="allow-same-origin allow-scripts allow-forms"
         ></iframe>
       </div>
       

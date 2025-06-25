@@ -14,7 +14,6 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [streamError, setStreamError] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
@@ -28,41 +27,20 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     // Start loading the stream
     loadStream();
     
-    // Start progress animation
-    const progressInterval = setInterval(() => {
-      setLoadingProgress(prev => {
-        const increment = Math.random() * 5; // Faster progress for better perceived performance
-        const newProgress = prev + increment;
-        return newProgress >= 100 ? 99 : newProgress;
-      });
-    }, 100);
-    
-    // Set a timeout to show error if stream doesn't load
-    const timeout = setTimeout(() => {
-      if (isLoading) {
-        setStreamError(true);
-        setIsLoading(false);
-      }
-    }, 8000);
-    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      clearInterval(progressInterval);
-      clearTimeout(timeout);
     };
   }, []);
 
   const loadStream = () => {
     setIsLoading(true);
     setStreamError(false);
-    setLoadingProgress(0);
     
     // Listen for messages from the iframe
     window.addEventListener('message', function handleMessage(event) {
       if (event.data === 'videoPlaying') {
         setIsLoading(false);
         setStreamError(false);
-        setLoadingProgress(100);
         // Remove the event listener once we've received the message
         window.removeEventListener('message', handleMessage);
       } else if (event.data === 'videoError') {
@@ -72,6 +50,14 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         window.removeEventListener('message', handleMessage);
       }
     });
+    
+    // Set a timeout to show error if stream doesn't load
+    setTimeout(() => {
+      if (isLoading) {
+        setStreamError(true);
+        setIsLoading(false);
+      }
+    }, 15000);
   };
 
   const toggleFullscreen = () => {
@@ -104,7 +90,6 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
       iframeRef.current.src = newSrc;
       setIsLoading(true);
       setStreamError(false);
-      setLoadingProgress(0);
     }
   };
 
@@ -161,7 +146,6 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
                 </div>
               </div>
               <p className="text-gray-300 mt-4 text-lg">Loading stream...</p>
-              <p className="text-gray-500 mt-2">{Math.round(loadingProgress)}%</p>
             </div>
           </div>
         )}
@@ -194,7 +178,8 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
           className="w-full h-full border-0"
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
-          loading="eager" // Use eager loading for faster display
+          loading="eager"
+          sandbox="allow-same-origin allow-scripts allow-forms"
         ></iframe>
       </div>
       

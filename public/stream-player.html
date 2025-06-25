@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stream Player</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
   <style>
     body, html {
       margin: 0;
@@ -14,11 +14,14 @@
       height: 100%;
       overflow: hidden;
       background-color: #000;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
     }
     #videoPlayer {
       width: 100%;
       height: 100%;
       object-fit: contain;
+      background-color: #000;
     }
     .error-container {
       position: absolute;
@@ -42,6 +45,8 @@
     .error-message {
       font-size: 18px;
       margin-bottom: 16px;
+      text-align: center;
+      max-width: 80%;
     }
     .error-button {
       background-color: #38ef7d;
@@ -51,11 +56,44 @@
       border-radius: 4px;
       cursor: pointer;
       font-weight: bold;
+      margin-top: 10px;
+    }
+    .loading-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      background-color: #000;
+      z-index: 5;
+    }
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(56, 239, 125, 0.2);
+      border-radius: 50%;
+      border-top-color: #38ef7d;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
   <video id="videoPlayer" controls autoplay playsinline></video>
+  
+  <div id="loadingContainer" class="loading-container">
+    <div class="spinner"></div>
+    <div>Loading stream...</div>
+  </div>
+  
   <div id="errorContainer" class="error-container" style="display: none;">
     <div class="error-icon">⚠️</div>
     <div class="error-message">Stream loading error</div>
@@ -70,6 +108,7 @@
     
     const video = document.getElementById('videoPlayer');
     const errorContainer = document.getElementById('errorContainer');
+    const loadingContainer = document.getElementById('loadingContainer');
     
     // Set initial muted state
     video.muted = muted;
@@ -81,72 +120,120 @@
       }
     });
     
-    function loadStream() {
-      if (!streamUrl) {
+    // Function to show loading indicator
+    function showLoading() {
+      loadingContainer.style.display = 'flex';
+      errorContainer.style.display = 'none';
+    }
+    
+    // Function to hide loading indicator
+    function hideLoading() {
+      loadingContainer.style.display = 'none';
+    }
+    
+    // Function to show error message
+    function showError(message) {
+      hideLoading();
+      errorContainer.querySelector('.error-message').textContent = message || "Stream loading error";
+      errorContainer.style.display = 'flex';
+    }
+    
+    // Function to load the stream
+    function loadStream(url = streamUrl) {
+      showLoading();
+      
+      if (!url) {
         showError("No stream URL provided");
         return;
       }
       
+      // Clean up any existing HLS instance
+      if (window.hls) {
+        window.hls.destroy();
+        window.hls = null;
+      }
+      
+      // Reset video element
+      video.src = "";
+      video.load();
+      
       if (Hls.isSupported()) {
-        const hls = new Hls({
+        window.hls = new Hls({
           maxBufferLength: 30,
           maxMaxBufferLength: 60,
           enableWorker: true,
           lowLatencyMode: true,
-          backBufferLength: 90
+          backBufferLength: 90,
+          fragLoadingTimeOut: 20000, // Longer timeout for slow connections
+          manifestLoadingTimeOut: 20000,
+          levelLoadingTimeOut: 20000
         });
         
-        hls.loadSource(streamUrl);
-        hls.attachMedia(video);
+        window.hls.loadSource(url);
+        window.hls.attachMedia(video);
         
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-          video.play().catch(e => console.log('Playback error:', e));
+        window.hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          hideLoading();
+          video.play().catch(e => {
+            console.log('Playback error:', e);
+            // Auto-mute and retry if autoplay was blocked
+            if (e.name === 'NotAllowedError') {
+              video.muted = true;
+              video.play().catch(err => {
+                showError("Playback error: " + err.message);
+              });
+            }
+          });
         });
         
-        hls.on(Hls.Events.ERROR, function(event, data) {
+        window.hls.on(Hls.Events.ERROR, function(event, data) {
+          console.error('HLS error:', data);
+          
           if (data.fatal) {
-            console.error('HLS error:', data);
-            showError("Stream loading error");
+            switch(data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                // Try to recover network error
+                console.log('Fatal network error encountered, trying to recover');
+                window.hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.log('Fatal media error encountered, trying to recover');
+                window.hls.recoverMediaError();
+                break;
+              default:
+                // Cannot recover
+                showError("Stream loading error: " + (data.details || "unknown error"));
+                break;
+            }
           }
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // For Safari which has native HLS support
-        video.src = streamUrl;
-        video.addEventListener('error', function() {
-          showError("Stream loading error");
+        video.src = url;
+        video.addEventListener('loadedmetadata', function() {
+          hideLoading();
+          video.play().catch(e => {
+            console.log('Playback error:', e);
+            showError("Playback error: " + e.message);
+          });
         });
-        video.play().catch(e => {
-          console.log('Playback error:', e);
-          showError("Stream loading error");
+        
+        video.addEventListener('error', function() {
+          showError("Stream loading error: " + (video.error ? video.error.message : "unknown error"));
         });
       } else {
         showError("Your browser doesn't support HLS playback");
       }
     }
     
-    function showError(message) {
-      errorContainer.querySelector('.error-message').textContent = message || "Stream loading error";
-      errorContainer.style.display = 'flex';
-    }
-    
+    // Function to retry loading the stream
     function retryStream() {
-      errorContainer.style.display = 'none';
       // Add timestamp to force reload
       const timestamp = new Date().getTime();
       const separator = streamUrl.includes('?') ? '&' : '?';
       const refreshedUrl = `${streamUrl}${separator}_t=${timestamp}`;
       
-      if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(refreshedUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-          video.play().catch(e => console.log('Playback error:', e));
-        });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = refreshedUrl;
-        video.play().catch(e => console.log('Playback error:', e));
-      }
+      loadStream(refreshedUrl);
     }
     
     // Initialize stream
@@ -154,7 +241,15 @@
     
     // Notify parent when video starts playing
     video.addEventListener('playing', function() {
+      hideLoading();
       window.parent.postMessage('videoPlaying', '*');
+    });
+    
+    // Handle video errors
+    video.addEventListener('error', function() {
+      const errorCode = video.error ? video.error.code : 0;
+      const errorMessage = video.error ? video.error.message : "Unknown error";
+      showError(`Video error (${errorCode}): ${errorMessage}`);
     });
   </script>
 </body>

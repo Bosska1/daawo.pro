@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase, Match } from '@/lib/supabase';
 import { MatchCard } from '@/components/match-card';
 import { MatchStream } from '@/components/match-stream';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { StickyAd } from '@/components/sticky-ad';
+import { Tv } from 'lucide-react';
 
 export function HomePage() {
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
@@ -90,6 +92,22 @@ export function HomePage() {
 
   return (
     <div className="container mx-auto px-4 pb-20">
+      {/* Live TV Banner */}
+      <div className="my-4 p-4 bg-gradient-to-r from-blue-900/80 to-green-900/80 rounded-lg shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold">Live TV Channels</h3>
+            <p className="text-sm text-gray-200">Watch sports, news, and entertainment channels</p>
+          </div>
+          <Link to="/tv">
+            <Button variant="glow" className="flex items-center">
+              <Tv className="h-4 w-4 mr-2" />
+              Watch Now
+            </Button>
+          </Link>
+        </div>
+      </div>
+      
       {/* Live Matches Section */}
       <section className="py-6">
         <div className="flex justify-between items-center mb-4">
@@ -97,6 +115,9 @@ export function HomePage() {
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></span>
             Live Matches
           </h2>
+          <Link to="/live" className="text-sm text-primary hover:underline">
+            View All
+          </Link>
         </div>
         
         {loading ? (
@@ -129,6 +150,9 @@ export function HomePage() {
             <span className="text-gray-400 mr-2">⏳</span>
             Upcoming Matches
           </h2>
+          <Link to="/upcoming" className="text-sm text-primary hover:underline">
+            View All
+          </Link>
         </div>
         
         {loading ? (
@@ -160,6 +184,9 @@ export function HomePage() {
             <span className="text-gray-400 mr-2">✅</span>
             Finished Matches
           </h2>
+          <Link to="/finished" className="text-sm text-primary hover:underline">
+            View All
+          </Link>
         </div>
         
         {loading ? (

@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { LiveTV } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Maximize, Minimize, RefreshCw, Volume2, VolumeX, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Maximize, Minimize, RefreshCw, Volume2, VolumeX, PlayCircle, RotateCw } from 'lucide-react';
 
 interface LiveTVPlayerProps {
   tv: LiveTV;
@@ -160,7 +160,7 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button onClick={handleRefresh} className="flex items-center">
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RotateCw className="h-4 w-4 mr-2" />
                   Try Again
                 </Button>
                 <Button onClick={onBack} variant="outline">

@@ -10,12 +10,13 @@ export function Navbar() {
   
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gray-950/95 backdrop-blur-md border-t border-gray-800 p-2 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.2)]">
-      <Tabs defaultValue={currentPath} className="w-full">
-        <TabsList className="w-full bg-gray-900 grid grid-cols-6 h-auto p-1">
+      <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none"></div>
+      <Tabs defaultValue={currentPath} className="w-full relative z-10">
+        <TabsList className="w-full bg-gray-900 grid grid-cols-6 h-auto p-1 rounded-xl">
           <TabsTrigger 
             value="/" 
             asChild 
-            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)]"
+            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)] rounded-lg"
           >
             <Link to="/" className="flex flex-col items-center py-1.5">
               <Home className="h-5 w-5" />
@@ -25,7 +26,7 @@ export function Navbar() {
           <TabsTrigger 
             value="/live" 
             asChild 
-            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)]"
+            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)] rounded-lg"
           >
             <Link to="/live" className="flex flex-col items-center py-1.5">
               <PlayCircle className="h-5 w-5" />
@@ -35,7 +36,7 @@ export function Navbar() {
           <TabsTrigger 
             value="/upcoming" 
             asChild 
-            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)]"
+            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)] rounded-lg"
           >
             <Link to="/upcoming" className="flex flex-col items-center py-1.5">
               <Clock className="h-5 w-5" />
@@ -45,7 +46,7 @@ export function Navbar() {
           <TabsTrigger 
             value="/finished" 
             asChild 
-            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)]"
+            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)] rounded-lg"
           >
             <Link to="/finished" className="flex flex-col items-center py-1.5">
               <CheckCircle className="h-5 w-5" />
@@ -55,7 +56,7 @@ export function Navbar() {
           <TabsTrigger 
             value="/tv" 
             asChild 
-            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)]"
+            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)] rounded-lg"
           >
             <Link to="/tv" className="flex flex-col items-center py-1.5">
               <Tv className="h-5 w-5" />
@@ -65,7 +66,7 @@ export function Navbar() {
           <TabsTrigger 
             value="/favorites" 
             asChild 
-            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)]"
+            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)] rounded-lg"
           >
             <Link to="/favorites" className="flex flex-col items-center py-1.5">
               <Heart className="h-5 w-5" />

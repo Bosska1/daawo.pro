@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stream Player</title>
+  <title>Advanced Stream Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     body, html {
@@ -198,26 +197,47 @@
     .message.show {
       opacity: 1;
     }
+    
+    .quality-selector {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0,0,0,0.8);
+      padding: 8px;
+      border-radius: 4px;
+      display: none;
+      z-index: 20;
+    }
+    
+    .quality-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    
+    .quality-option:hover {
+      background-color: rgba(56, 239, 125, 0.3);
+    }
   </style>
 </head>
 <body>
   <div id="videoContainer">
-    <!-- Direct video element -->
     <video id="videoPlayer" playsinline autoplay></video>
     
-    <!-- Controls -->
     <div class="controls">
       <button id="playPauseBtn" class="control-button">▶️</button>
       <button id="muteBtn" class="control-button">🔊</button>
+      <button id="qualityBtn" class="control-button">⚙️</button>
       <button id="refreshBtn" class="control-button">🔄</button>
       <button id="fullscreenBtn" class="control-button">⛶</button>
     </div>
     
-    <!-- Message display -->
     <div id="message" class="message"></div>
+    
+    <div class="quality-selector" id="qualitySelector"></div>
   </div>
   
-  <!-- Loading indicator -->
   <div id="loadingContainer" class="loading-container">
     <div class="spinner">
       <div class="spinner-ring"></div>
@@ -228,7 +248,6 @@
     <div class="loading-progress" id="loadingProgress">0%</div>
   </div>
   
-  <!-- Error display -->
   <div id="errorContainer" class="error-container" style="display: none;">
     <div class="error-icon">⚠️</div>
     <div class="error-message" id="errorMessage">Unable to load the stream</div>
@@ -247,113 +266,103 @@
     const nextSourceBtn = document.getElementById('nextSourceBtn');
     const playPauseBtn = document.getElementById('playPauseBtn');
     const muteBtn = document.getElementById('muteBtn');
+    const qualityBtn = document.getElementById('qualityBtn');
     const refreshBtn = document.getElementById('refreshBtn');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     const messageEl = document.getElementById('message');
     const videoContainer = document.getElementById('videoContainer');
+    const qualitySelector = document.getElementById('qualitySelector');
     
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     let streamUrl = urlParams.get('url');
     const initialMuted = urlParams.get('muted') === 'true';
     
-    // Set initial state
-    video.muted = initialMuted;
-    updateMuteButton();
-    
-    // Stream sources
-    let sources = [];
+    // Player state
+    let hls;
     let currentSourceIndex = 0;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    let sources = [];
+    let stallTimer;
+    let progressInterval;
     
-    // Function to check if URL is a direct TS file
-    function isTsFile(url) {
-      return url && url.toLowerCase().endsWith('.ts');
-    }
-    
-    // Function to convert TS URL to HLS URL if needed
-    function convertToHlsIfNeeded(url) {
-      if (isTsFile(url)) {
-        // For TS files, try to create an HLS URL by removing the specific TS file
-        // and keeping the base path which might be an m3u8 playlist
-        try {
-          const urlObj = new URL(url);
-          const pathParts = urlObj.pathname.split('/');
-          
-          // Check if the path contains segments that look like a TS file pattern
-          const tsFilePattern = /.*-\d+\.ts$/;
-          if (tsFilePattern.test(pathParts[pathParts.length - 1])) {
-            // Remove the last part (TS file) and potentially the timestamp part
-            pathParts.pop();
-            
-            // If the last part looks like a timestamp (e.g., 16/55/42)
-            if (/^\d+$/.test(pathParts[pathParts.length - 1])) {
-              // Keep removing timestamp parts
-              while (pathParts.length > 0 && /^\d+$/.test(pathParts[pathParts.length - 1])) {
-                pathParts.pop();
-              }
-            }
-            
-            // Try to find the index.m3u8 or similar
-            const basePath = pathParts.join('/');
-            const baseUrl = `${urlObj.protocol}//${urlObj.host}${basePath}`;
-            
-            // Create potential HLS URLs
-            return [
-              `${baseUrl}/index.m3u8${urlObj.search}`,
-              `${baseUrl}/playlist.m3u8${urlObj.search}`,
-              `${baseUrl}/master.m3u8${urlObj.search}`,
-              url // Keep original as fallback
-            ];
-          }
-        } catch (e) {
-          console.error('Error converting TS to HLS:', e);
+    // Initialize player
+    function initPlayer() {
+      video.muted = initialMuted;
+      updateMuteButton();
+      
+      if (streamUrl) {
+        sources = getSources(streamUrl);
+        if (sources.length > 0) {
+          loadStream(sources[currentSourceIndex]);
+        } else {
+          showError('No valid stream URL provided');
         }
+      } else {
+        showError('No stream URL provided');
       }
       
-      return [url]; // Return original URL if not a TS file or conversion failed
+      setupEventListeners();
     }
     
-    // Create multiple sources from the original URL
-    if (streamUrl) {
-      // Check if it's a direct TS file and try to convert to HLS
-      const potentialHlsUrls = convertToHlsIfNeeded(streamUrl);
-      sources = [...potentialHlsUrls];
-      
-      // Add timestamp to avoid caching
+    // Get optimized list of sources
+    function getSources(originalUrl) {
+      const sources = [];
       const timestamp = Date.now();
-      sources = sources.map(url => addTimestamp(url, timestamp));
       
-      // Create alternative sources
-      if (streamUrl.includes('beIN_Sports')) {
-        // For beIN Sports URLs, try different channel numbers
+      // 1. Original URL with timestamp
+      sources.push(addTimestamp(originalUrl, timestamp));
+      
+      // 2. Common HLS variants
+      const hlsVariants = [
+        originalUrl.replace('.m3u8', '_hd.m3u8'),
+        originalUrl.replace('.m3u8', '_sd.m3u8'),
+        originalUrl.replace('.m3u8', '/index.m3u8'),
+        originalUrl.replace('.m3u8', '/playlist.m3u8'),
+        originalUrl.replace('.m3u8', '/master.m3u8')
+      ];
+      
+      // 3. Try different protocols
+      const protocolVariants = [
+        originalUrl.replace('http://', 'https://'),
+        originalUrl.replace('https://', 'http://')
+      ];
+      
+      // 4. Channel variants for known providers
+      if (originalUrl.includes('beIN_Sports')) {
         for (let i = 1; i <= 3; i++) {
-          const newUrl = streamUrl.replace(/beIN_Sports\d+/, `beIN_Sports${i}`);
-          if (newUrl !== streamUrl) {
-            sources.push(addTimestamp(newUrl, timestamp));
-          }
+          sources.push(addTimestamp(originalUrl.replace(/beIN_Sports\d+/, `beIN_Sports${i}`), timestamp));
         }
-      } else if (streamUrl.includes('ASAL_MOVIES')) {
-        // For ASAL_MOVIES URLs, try different variations
+      } else if (originalUrl.includes('ASAL_MOVIES')) {
         const variations = [
-          streamUrl.replace('ASAL_MOVIES', 'ASAL_SPORTS'),
-          streamUrl.replace('ASAL_MOVIES', 'ASAL_HD'),
-          streamUrl.replace('ASAL_MOVIES', 'ASAL_PREMIUM')
+          originalUrl.replace('ASAL_MOVIES', 'ASAL_SPORTS'),
+          originalUrl.replace('ASAL_MOVIES', 'ASAL_HD'),
+          originalUrl.replace('ASAL_MOVIES', 'ASAL_PREMIUM')
         ];
-        
-        variations.forEach(url => {
-          if (url !== streamUrl) {
-            sources.push(addTimestamp(url, timestamp));
-          }
-        });
+        variations.forEach(url => sources.push(addTimestamp(url, timestamp)));
+      }
+      
+      // Combine all variants and filter out duplicates/invalids
+      return [...new Set([
+        originalUrl,
+        ...hlsVariants,
+        ...protocolVariants,
+        ...sources
+      ].filter(url => url && isValidUrl(url)))];
+    }
+    
+    // Validate URL
+    function isValidUrl(url) {
+      try {
+        new URL(url);
+        return true;
+      } catch {
+        return false;
       }
     }
     
-    // Ensure we have at least 3 sources
-    while (sources.length < 3 && sources.length > 0) {
-      sources.push(sources[0]);
-    }
-    
-    // Function to add timestamp to URL
+    // Add timestamp to URL
     function addTimestamp(url, timestamp) {
       if (!url) return url;
       
@@ -361,15 +370,288 @@
       return `${url}${separator}_t=${timestamp}`;
     }
     
-    // Function to show loading
+    // Check if URL is a TS file
+    function isTsFile(url) {
+      return url && url.toLowerCase().endsWith('.ts');
+    }
+    
+    // Setup event listeners
+    function setupEventListeners() {
+      // Video events
+      video.addEventListener('playing', function() {
+        clearTimeout(stallTimer);
+        hideLoading();
+        updatePlayPauseButton();
+        notifyParentPlaying();
+      });
+      
+      video.addEventListener('pause', updatePlayPauseButton);
+      
+      video.addEventListener('waiting', () => {
+        stallTimer = setTimeout(() => {
+          showMessage('Stream stalled, trying to recover...');
+          if (video.buffered.length > 0) {
+            video.currentTime = Math.max(0, video.currentTime - 0.5);
+          }
+          retryCurrentSource();
+        }, 3000);
+      });
+      
+      video.addEventListener('error', function() {
+        console.error('Video error:', video.error);
+        tryNextSource();
+      });
+      
+      // Control buttons
+      playPauseBtn.addEventListener('click', togglePlayPause);
+      muteBtn.addEventListener('click', toggleMute);
+      qualityBtn.addEventListener('click', toggleQualitySelector);
+      refreshBtn.addEventListener('click', retryCurrentSource);
+      fullscreenBtn.addEventListener('click', toggleFullscreen);
+      
+      // Error buttons
+      retryBtn.addEventListener('click', retryCurrentSource);
+      nextSourceBtn.addEventListener('click', tryNextSource);
+      
+      // Parent window communication
+      window.addEventListener('message', function(event) {
+        if (event.data === 'toggleMute') {
+          toggleMute();
+        }
+      });
+      
+      // Double click for fullscreen
+      videoContainer.addEventListener('dblclick', toggleFullscreen);
+    }
+    
+    // Load stream with appropriate method
+    function loadStream(url) {
+      if (!url) {
+        showError('No stream URL provided');
+        return;
+      }
+      
+      showLoading();
+      
+      // Clean up previous instance
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+      
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      
+      if (isTsFile(url)) {
+        loadDirectTs(url);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        loadNativeHls(url);
+      } else if (Hls.isSupported()) {
+        setupHlsJs(url);
+      } else {
+        showError('Your browser does not support HLS playback');
+      }
+    }
+    
+    // Load TS file directly
+    function loadDirectTs(url) {
+      if (window.MediaSource) {
+        const mediaSource = new MediaSource();
+        video.src = URL.createObjectURL(mediaSource);
+        
+        mediaSource.addEventListener('sourceopen', function() {
+          const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+          
+          fetch(url)
+            .then(response => response.arrayBuffer())
+            .then(data => {
+              sourceBuffer.addEventListener('updateend', function() {
+                if (!sourceBuffer.updating && mediaSource.readyState === 'open') {
+                  mediaSource.endOfStream();
+                }
+              });
+              sourceBuffer.appendBuffer(data);
+            })
+            .catch(e => {
+              console.error('TS fetch error:', e);
+              tryNextSource();
+            });
+        });
+      } else {
+        video.src = url;
+      }
+      
+      video.addEventListener('error', function onError() {
+        console.error('TS playback error:', video.error);
+        tryNextSource();
+      });
+    }
+    
+    // Load HLS natively (Safari)
+    function loadNativeHls(url) {
+      video.src = url;
+      
+      video.addEventListener('loadedmetadata', function onMetadata() {
+        video.removeEventListener('loadedmetadata', onMetadata);
+        video.play()
+          .then(() => {
+            hideLoading();
+            notifyParentPlaying();
+          })
+          .catch(e => {
+            console.error('Native HLS playback error:', e);
+            if (Hls.isSupported()) {
+              setupHlsJs(url);
+            } else {
+              showError('Playback error: ' + e.message);
+            }
+          });
+      });
+      
+      video.addEventListener('error', function onError() {
+        video.removeEventListener('error', onError);
+        if (Hls.isSupported()) {
+          setupHlsJs(url);
+        } else {
+          showError('Native HLS playback failed');
+        }
+      });
+    }
+    
+    // Setup HLS.js player
+    function setupHlsJs(url) {
+      hls = new Hls({
+        maxBufferLength: 15,
+        maxMaxBufferLength: 30,
+        maxBufferSize: 60 * 1000 * 1000,
+        maxBufferHole: 0.5,
+        lowLatencyMode: true,
+        abrEwmaDefaultEstimate: 500000,
+        backBufferLength: 30,
+        startLevel: -1,
+        fragLoadingTimeOut: 10000,
+        manifestLoadingTimeOut: 10000,
+        levelLoadingTimeOut: 10000,
+        xhrSetup: (xhr) => {
+          xhr.setRequestHeader('Cache-Control', 'no-cache');
+          xhr.setRequestHeader('Pragma', 'no-cache');
+          xhr.setRequestHeader('Origin', window.location.origin);
+        }
+      });
+      
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+        updateQualityOptions(data.levels);
+        hideLoading();
+        video.play()
+          .then(() => {
+            notifyParentPlaying();
+          })
+          .catch(e => {
+            console.error('HLS.js playback error:', e);
+            handlePlaybackError(e);
+          });
+      });
+      
+      hls.on(Hls.Events.FRAG_BUFFERED, hideLoading);
+      hls.on(Hls.Events.FRAG_LOADING, showLoading);
+      
+      hls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
+        showMessage(`Quality changed to ${hls.levels[data.level].height}p`);
+      });
+      
+      hls.on(Hls.Events.ERROR, function(event, data) {
+        if (data.fatal) {
+          console.error('HLS Error:', data);
+          switch(data.details) {
+            case Hls.ErrorDetails.MANIFEST_LOAD_ERROR:
+            case Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT:
+            case Hls.ErrorDetails.MANIFEST_PARSING_ERROR:
+              tryNextSource();
+              break;
+            case Hls.ErrorDetails.FRAG_LOAD_ERROR:
+            case Hls.ErrorDetails.FRAG_LOAD_TIMEOUT:
+              hls.startLoad();
+              break;
+            case Hls.ErrorDetails.KEY_LOAD_ERROR:
+            case Hls.ErrorDetails.KEY_LOAD_TIMEOUT:
+              hls.recoverMediaError();
+              break;
+            default:
+              tryNextSource();
+          }
+        }
+      });
+    }
+    
+    // Handle playback errors
+    function handlePlaybackError(error) {
+      if (error.name === 'NotAllowedError') {
+        video.muted = true;
+        updateMuteButton();
+        video.play()
+          .then(() => {
+            notifyParentPlaying();
+            showMessage('Autoplay muted. Click to unmute.');
+          })
+          .catch(err => {
+            showError('Playback blocked by browser');
+          });
+      } else {
+        showError('Playback error: ' + error.message);
+      }
+    }
+    
+    // Update quality options
+    function updateQualityOptions(levels) {
+      if (!levels || levels.length < 2) return;
+      
+      qualitySelector.innerHTML = '';
+      levels.forEach((level, index) => {
+        const option = document.createElement('div');
+        option.className = 'quality-option';
+        option.textContent = level.height ? `${level.height}p` : `Level ${index}`;
+        option.addEventListener('click', () => {
+          hls.currentLevel = index;
+          qualitySelector.style.display = 'none';
+        });
+        qualitySelector.appendChild(option);
+      });
+      
+      // Add auto option
+      const autoOption = document.createElement('div');
+      autoOption.className = 'quality-option';
+      autoOption.textContent = 'Auto';
+      autoOption.addEventListener('click', () => {
+        hls.currentLevel = -1;
+        qualitySelector.style.display = 'none';
+      });
+      qualitySelector.appendChild(autoOption);
+    }
+    
+    // Toggle quality selector
+    function toggleQualitySelector() {
+      if (qualitySelector.style.display === 'block') {
+        qualitySelector.style.display = 'none';
+      } else if (hls && hls.levels && hls.levels.length > 1) {
+        qualitySelector.style.display = 'block';
+      } else {
+        showMessage('No quality options available');
+      }
+    }
+    
+    // Show loading indicator
     function showLoading() {
       loadingContainer.style.display = 'flex';
       errorContainer.style.display = 'none';
       
-      // Animate progress
+      clearInterval(progressInterval);
       let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += Math.random() * 15; // Even faster progress for better UX
+      progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
         if (progress >= 99) {
           progress = 99;
           clearInterval(progressInterval);
@@ -377,27 +659,26 @@
         loadingProgress.textContent = `${Math.floor(progress)}%`;
       }, 150);
       
-      // Set timeout to show error if loading takes too long
       setTimeout(() => {
         if (loadingContainer.style.display !== 'none') {
           showError('Stream is taking too long to load. Try another source.');
           clearInterval(progressInterval);
         }
-      }, 6000); // Further reduced timeout for better UX
+      }, 6000);
     }
     
-    // Function to hide loading
+    // Hide loading indicator
     function hideLoading() {
       loadingContainer.style.display = 'none';
+      clearInterval(progressInterval);
     }
     
-    // Function to show error
+    // Show error message
     function showError(message) {
       hideLoading();
       errorMessage.textContent = message || 'Unable to load the stream';
       errorContainer.style.display = 'flex';
       
-      // Notify parent window
       try {
         window.parent.postMessage('videoError', '*');
       } catch (e) {
@@ -405,7 +686,7 @@
       }
     }
     
-    // Function to show message
+    // Show temporary message
     function showMessage(text) {
       messageEl.textContent = text;
       messageEl.classList.add('show');
@@ -415,165 +696,31 @@
       }, 2000);
     }
     
-    // Function to load direct TS file
-    function loadDirectTs(url) {
-      // For direct TS files, we'll use a simple video element
-      video.src = url;
-      video.addEventListener('loadedmetadata', function onMetadata() {
-        video.removeEventListener('loadedmetadata', onMetadata);
-        hideLoading();
-        video.play()
-          .then(() => {
-            notifyParentPlaying();
-          })
-          .catch(e => {
-            console.error('Direct TS playback error:', e);
-            showError('Playback error: ' + e.message);
-          });
-      });
-      
-      video.addEventListener('error', function onError() {
-        console.error('Video error:', video.error);
-        tryNextSource();
-      });
-    }
-    
-    // Function to load stream
-    function loadStream(url) {
-      if (!url) {
-        showError('No stream URL provided');
-        return;
-      }
-      
-      showLoading();
-      
-      // Reset video
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-      
-      // Check if it's a direct TS file
-      if (isTsFile(url)) {
-        loadDirectTs(url);
-        return;
-      }
-      
-      // Try direct playback first (for Safari)
-      if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
-        video.addEventListener('loadedmetadata', function onMetadata() {
-          video.removeEventListener('loadedmetadata', onMetadata);
-          hideLoading();
-          video.play()
-            .then(() => {
-              notifyParentPlaying();
-            })
-            .catch(e => {
-              console.error('Direct playback error:', e);
-              // Try with HLS.js instead
-              setupHLS(url);
-            });
-        });
-        
-        video.addEventListener('error', function onError() {
-          video.removeEventListener('error', onError);
-          console.error('Video error:', video.error);
-          // Try with HLS.js instead
-          setupHLS(url);
-        });
-      } else {
-        // Use HLS.js
-        setupHLS(url);
-      }
-    }
-    
-    // Function to setup HLS.js
-    function setupHLS(url) {
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          fragLoadingTimeOut: 6000, // Further reduced timeout
-          manifestLoadingTimeOut: 6000, // Further reduced timeout
-          levelLoadingTimeOut: 6000, // Further reduced timeout
-          startLevel: 0, // Start with lowest quality for faster loading
-          progressive: true, // Enable progressive loading
-          lowLatencyMode: true,
-          xhrSetup: function(xhr) {
-            xhr.setRequestHeader('Cache-Control', 'no-cache');
-            xhr.setRequestHeader('User-Agent', 'ExoPlayer'); // Add ExoPlayer user agent
-          }
-        });
-        
-        hls.loadSource(url);
-        hls.attachMedia(video);
-        
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-          hideLoading();
-          video.play()
-            .then(() => {
-              notifyParentPlaying();
-            })
-            .catch(e => {
-              console.error('HLS playback error:', e);
-              if (e.name === 'NotAllowedError') {
-                // Autoplay with sound blocked, try muted
-                video.muted = true;
-                updateMuteButton();
-                video.play()
-                  .then(() => {
-                    notifyParentPlaying();
-                    showMessage('Autoplay muted. Click to unmute.');
-                  })
-                  .catch(err => {
-                    showError('Playback blocked by browser');
-                  });
-              } else {
-                showError('Playback error: ' + e.message);
-              }
-            });
-        });
-        
-        hls.on(Hls.Events.ERROR, function(event, data) {
-          if (data.fatal) {
-            console.error('HLS error:', data);
-            switch(data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                hls.startLoad(); // Try to recover
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                hls.recoverMediaError(); // Try to recover
-                break;
-              default:
-                // Fatal error, try next source
-                tryNextSource();
-                break;
-            }
-          }
-        });
-      } else {
-        // HLS not supported and direct playback failed
-        showError('Your browser does not support HLS playback');
-      }
-    }
-    
-    // Function to try next source
+    // Try next source
     function tryNextSource() {
+      if (retryCount >= MAX_RETRIES * sources.length) {
+        showError('All sources failed. Please check your connection.');
+        return;
+      }
+      
+      retryCount++;
       currentSourceIndex = (currentSourceIndex + 1) % sources.length;
       showMessage(`Trying source ${currentSourceIndex + 1}/${sources.length}`);
-      loadStream(sources[currentSourceIndex]);
+      
+      setTimeout(() => {
+        loadStream(sources[currentSourceIndex]);
+      }, 500 * Math.min(retryCount, 5));
     }
     
-    // Function to retry current source
+    // Retry current source
     function retryCurrentSource() {
-      // Add new timestamp to force refresh
       const timestamp = Date.now();
       const baseUrl = sources[currentSourceIndex].split('?')[0];
       sources[currentSourceIndex] = addTimestamp(baseUrl, timestamp);
       loadStream(sources[currentSourceIndex]);
     }
     
-    // Function to notify parent that video is playing
+    // Notify parent window
     function notifyParentPlaying() {
       try {
         window.parent.postMessage('videoPlaying', '*');
@@ -582,98 +729,49 @@
       }
     }
     
-    // Function to update mute button
-    function updateMuteButton() {
-      muteBtn.textContent = video.muted ? '🔇' : '🔊';
-    }
-    
-    // Function to update play/pause button
-    function updatePlayPauseButton() {
-      playPauseBtn.textContent = video.paused ? '▶️' : '⏸️';
-    }
-    
-    // Event listeners
-    video.addEventListener('playing', function() {
-      hideLoading();
-      updatePlayPauseButton();
-      notifyParentPlaying();
-    });
-    
-    video.addEventListener('pause', function() {
-      updatePlayPauseButton();
-    });
-    
-    video.addEventListener('error', function() {
-      console.error('Video error:', video.error);
-      tryNextSource();
-    });
-    
-    // Control button listeners
-    playPauseBtn.addEventListener('click', function() {
+    // Toggle play/pause
+    function togglePlayPause() {
       if (video.paused) {
-        video.play();
+        video.play().catch(e => {
+          console.error('Play error:', e);
+          showError('Playback error: ' + e.message);
+        });
       } else {
         video.pause();
       }
       updatePlayPauseButton();
-    });
+    }
     
-    muteBtn.addEventListener('click', function() {
+    // Toggle mute
+    function toggleMute() {
       video.muted = !video.muted;
       updateMuteButton();
       showMessage(video.muted ? 'Muted' : 'Unmuted');
-    });
-    
-    refreshBtn.addEventListener('click', function() {
-      retryCurrentSource();
-    });
-    
-    fullscreenBtn.addEventListener('click', function() {
-      if (!document.fullscreenElement) {
-        videoContainer.requestFullscreen().catch(err => {
-          console.error('Fullscreen error:', err);
-        });
-      } else {
-        document.exitFullscreen();
-      }
-    });
-    
-    // Retry button
-    retryBtn.addEventListener('click', function() {
-      retryCurrentSource();
-    });
-    
-    // Next source button
-    nextSourceBtn.addEventListener('click', function() {
-      tryNextSource();
-    });
-    
-    // Listen for messages from parent
-    window.addEventListener('message', function(event) {
-      if (event.data === 'toggleMute') {
-        video.muted = !video.muted;
-        updateMuteButton();
-        showMessage(video.muted ? 'Muted' : 'Unmuted');
-      }
-    });
-    
-    // Double click for fullscreen
-    videoContainer.addEventListener('dblclick', function() {
-      if (!document.fullscreenElement) {
-        videoContainer.requestFullscreen().catch(err => {
-          console.error('Fullscreen error:', err);
-        });
-      } else {
-        document.exitFullscreen();
-      }
-    });
-    
-    // Start loading the first source
-    if (sources.length > 0) {
-      loadStream(sources[currentSourceIndex]);
-    } else {
-      showError('No stream URL provided');
     }
+    
+    // Toggle fullscreen
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        videoContainer.requestFullscreen().catch(err => {
+          console.error('Fullscreen error:', err);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+    
+    // Update mute button
+    function updateMuteButton() {
+      muteBtn.textContent = video.muted ? '🔇' : '🔊';
+    }
+    
+    // Update play/pause button
+    function updatePlayPauseButton() {
+      playPauseBtn.textContent = video.paused ? '▶️' : '⏸️';
+    }
+    
+    // Initialize the player
+    initPlayer();
   </script>
 </body>
-</html>
+  </html>

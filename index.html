@@ -59,6 +59,8 @@
         to { transform: rotate(360deg); }
       }
     </style>
+    <!-- HLS.js for better HLS stream support -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   </head>
   <body>
     <div id="root">
@@ -79,6 +81,50 @@
             });
         });
       }
+      
+      // Initialize HLS.js for video elements when they're created
+      document.addEventListener('DOMContentLoaded', function() {
+        function setupHlsForVideos() {
+          const videos = document.querySelectorAll('video');
+          videos.forEach(video => {
+            if (video.dataset.hlsInitialized) return;
+            
+            const source = video.querySelector('source');
+            if (source && source.src.includes('.m3u8')) {
+              if (Hls.isSupported()) {
+                const hls = new Hls({
+                  enableWorker: true,
+                  lowLatencyMode: true,
+                  backBufferLength: 90
+                });
+                hls.loadSource(source.src);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                  video.play().catch(e => console.log('Playback error:', e));
+                });
+                video.dataset.hlsInitialized = 'true';
+              } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // For Safari which has native HLS support
+                video.src = source.src;
+                video.dataset.hlsInitialized = 'true';
+              }
+            }
+          });
+        }
+        
+        // Initial setup
+        setupHlsForVideos();
+        
+        // Setup observer to detect new video elements
+        const observer = new MutationObserver(function(mutations) {
+          setupHlsForVideos();
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      });
     </script>
   </body>
 </html>

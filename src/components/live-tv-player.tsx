@@ -48,10 +48,28 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
-    }, 3000);
+    }, 8000); // Longer timeout for slower connections
+    
+    // Listen for messages from the iframe
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data === 'videoPlaying') {
+        setIsLoading(false);
+        setStreamError(false);
+        setLoadingProgress(100);
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+        }
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
     
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('message', handleMessage);
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
       }
@@ -109,7 +127,9 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
       const separator = currentSrc.includes('?') ? '&' : '?';
       const refreshedSrc = `${currentSrc}${separator}_t=${timestamp}`;
       
-      iframeRef.current.src = refreshedSrc;
+      // For our custom player, we need to reload the entire iframe
+      const playerUrl = `/stream-player.html?url=${encodeURIComponent(refreshedSrc)}&muted=${isMuted}`;
+      iframeRef.current.src = playerUrl;
       
       // Set a backup timer in case onLoad doesn't fire
       if (loadingTimeoutRef.current) {
@@ -121,7 +141,7 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
         }
-      }, 3000);
+      }, 8000);
     }
   };
 
@@ -134,14 +154,8 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
   };
 
   const handleIframeLoad = () => {
-    setIsLoading(false);
-    setLoadingProgress(100);
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
+    // We'll rely on the message event for more accurate loading state
+    console.log("Iframe loaded");
   };
 
   const handleIframeError = () => {
@@ -152,9 +166,8 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
     }
   };
 
-  // Use direct iframe embed for better compatibility
+  // Get current stream URL
   const currentStreamUrl = streamSources[currentSourceIndex];
-  const isM3u8 = currentStreamUrl.includes('.m3u8');
 
   return (
     <div className="w-full h-full flex flex-col bg-black">
@@ -248,29 +261,15 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
         
         {currentStreamUrl && (
           <div className="w-full h-full flex items-center justify-center bg-black">
-            {isM3u8 ? (
-              // For HLS streams, use our dedicated player
-              <iframe
-                ref={iframeRef}
-                src={`/stream-player.html?url=${encodeURIComponent(currentStreamUrl)}&muted=${isMuted}`}
-                className="w-full h-full border-0"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-                onLoad={handleIframeLoad}
-                onError={handleIframeError}
-              ></iframe>
-            ) : (
-              // For direct embed URLs
-              <iframe
-                ref={iframeRef}
-                src={currentStreamUrl}
-                className="w-full h-full border-0"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-                onLoad={handleIframeLoad}
-                onError={handleIframeError}
-              ></iframe>
-            )}
+            <iframe
+              ref={iframeRef}
+              src={`/stream-player.html?url=${encodeURIComponent(currentStreamUrl)}&muted=${isMuted}`}
+              className="w-full h-full border-0"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+              onLoad={handleIframeLoad}
+              onError={handleIframeError}
+            ></iframe>
           </div>
         )}
       </div>

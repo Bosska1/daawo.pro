@@ -19,6 +19,7 @@ export function Advertisement() {
   const [ads, setAds] = useState<Advertisement[]>([]);
   const [showPopup, setShowPopup] = useState(false);
   const [currentPopupAd, setCurrentPopupAd] = useState<Advertisement | null>(null);
+  const [showBanner, setShowBanner] = useState(true);
   const location = useLocation();
   
   useEffect(() => {
@@ -34,6 +35,22 @@ export function Advertisement() {
         .or(`target_page.eq.${location.pathname},target_page.is.null`);
       
       if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        // If no ads in database, create a default banner ad
+        const defaultBannerAd: Advertisement = {
+          id: 'default-banner',
+          name: 'Default Banner',
+          type: 'banner',
+          content: `<div class="flex-1 text-center">
+            🔥 Live Football - Free HD Streams - No Login Required!
+          </div>`,
+          is_active: true
+        };
+        
+        setAds([defaultBannerAd]);
+        return;
+      }
       
       setAds(data as Advertisement[]);
       
@@ -55,10 +72,25 @@ export function Advertisement() {
       }
     } catch (error) {
       console.error('Error fetching advertisements:', error);
+      
+      // Create a default banner ad if there's an error
+      const defaultBannerAd: Advertisement = {
+        id: 'default-banner',
+        name: 'Default Banner',
+        type: 'banner',
+        content: `<div class="flex-1 text-center">
+          🔥 Live Football - Free HD Streams - No Login Required!
+        </div>`,
+        is_active: true
+      };
+      
+      setAds([defaultBannerAd]);
     }
   };
   
   const recordImpression = async (adId: string) => {
+    if (adId === 'default-banner') return;
+    
     try {
       await supabase.rpc('increment_ad_impression', { ad_id: adId });
     } catch (error) {
@@ -67,6 +99,8 @@ export function Advertisement() {
   };
   
   const recordClick = async (adId: string) => {
+    if (adId === 'default-banner') return;
+    
     try {
       await supabase.rpc('increment_ad_click', { ad_id: adId });
     } catch (error) {
@@ -86,20 +120,32 @@ export function Advertisement() {
     setShowPopup(false);
   };
   
+  const closeBanner = () => {
+    setShowBanner(false);
+  };
+  
   // Find banner ads
   const bannerAds = ads.filter(ad => ad.type === 'banner');
+  const bannerAd = bannerAds.length > 0 ? bannerAds[0] : null;
   
   return (
     <>
-      {/* Banner ads */}
-      {bannerAds.map(ad => (
-        <div 
-          key={ad.id}
-          className="bg-gradient-to-r from-blue-900/90 to-green-900/90 backdrop-blur-sm text-white py-2.5 px-4 text-sm z-10 shadow-lg cursor-pointer"
-          onClick={() => handleAdClick(ad)}
-          dangerouslySetInnerHTML={{ __html: ad.content }}
-        />
-      ))}
+      {/* Banner ad */}
+      {showBanner && bannerAd && (
+        <div className="fixed bottom-16 left-0 right-0 bg-gradient-to-r from-blue-900/90 to-green-900/90 backdrop-blur-sm text-white py-2.5 px-4 text-sm z-10 shadow-lg flex items-center justify-between">
+          <div 
+            className="flex-1 cursor-pointer"
+            onClick={() => handleAdClick(bannerAd)}
+            dangerouslySetInnerHTML={{ __html: bannerAd.content }}
+          />
+          <button 
+            onClick={closeBanner}
+            className="ml-2 text-gray-300 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       
       {/* Popup ad */}
       {showPopup && currentPopupAd && (
@@ -112,11 +158,37 @@ export function Advertisement() {
             >
               <X className="h-4 w-4" />
             </button>
-            <div 
-              className="ad-content"
-              dangerouslySetInnerHTML={{ __html: currentPopupAd.content }}
-              onClick={() => handleAdClick(currentPopupAd)}
-            />
+            
+            {/* Default popup content if none provided */}
+            {!currentPopupAd.content || currentPopupAd.content.trim() === '' ? (
+              <div className="ad-content">
+                <div className="text-center mb-4 text-primary text-4xl">📱</div>
+                <h3 className="text-xl font-bold mb-4 text-center gradient-text">Enjoying the Match?</h3>
+                <p className="text-gray-300 mb-6 text-center">
+                  Follow Us on Telegram for More Free Streams and Exclusive Content!
+                </p>
+                <button 
+                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/80 transition-colors animate-pulse-glow"
+                  onClick={() => {
+                    if (currentPopupAd.click_url) {
+                      window.open(currentPopupAd.click_url, '_blank');
+                    } else {
+                      window.open('https://t.me/streamgoal', '_blank');
+                    }
+                    closePopup();
+                    recordClick(currentPopupAd.id);
+                  }}
+                >
+                  Join Now
+                </button>
+              </div>
+            ) : (
+              <div 
+                className="ad-content"
+                dangerouslySetInnerHTML={{ __html: currentPopupAd.content }}
+                onClick={() => handleAdClick(currentPopupAd)}
+              />
+            )}
           </div>
         </div>
       )}

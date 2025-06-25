@@ -254,7 +254,7 @@
     
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const streamUrl = urlParams.get('url');
+    let streamUrl = urlParams.get('url');
     const initialMuted = urlParams.get('muted') === 'true';
     
     // Set initial state
@@ -265,18 +265,63 @@
     let sources = [];
     let currentSourceIndex = 0;
     
+    // Function to check if URL is a direct TS file
+    function isTsFile(url) {
+      return url && url.toLowerCase().endsWith('.ts');
+    }
+    
+    // Function to convert TS URL to HLS URL if needed
+    function convertToHlsIfNeeded(url) {
+      if (isTsFile(url)) {
+        // For TS files, try to create an HLS URL by removing the specific TS file
+        // and keeping the base path which might be an m3u8 playlist
+        try {
+          const urlObj = new URL(url);
+          const pathParts = urlObj.pathname.split('/');
+          
+          // Check if the path contains segments that look like a TS file pattern
+          const tsFilePattern = /.*-\d+\.ts$/;
+          if (tsFilePattern.test(pathParts[pathParts.length - 1])) {
+            // Remove the last part (TS file) and potentially the timestamp part
+            pathParts.pop();
+            
+            // If the last part looks like a timestamp (e.g., 16/55/42)
+            if (/^\d+$/.test(pathParts[pathParts.length - 1])) {
+              // Keep removing timestamp parts
+              while (pathParts.length > 0 && /^\d+$/.test(pathParts[pathParts.length - 1])) {
+                pathParts.pop();
+              }
+            }
+            
+            // Try to find the index.m3u8 or similar
+            const basePath = pathParts.join('/');
+            const baseUrl = `${urlObj.protocol}//${urlObj.host}${basePath}`;
+            
+            // Create potential HLS URLs
+            return [
+              `${baseUrl}/index.m3u8${urlObj.search}`,
+              `${baseUrl}/playlist.m3u8${urlObj.search}`,
+              `${baseUrl}/master.m3u8${urlObj.search}`,
+              url // Keep original as fallback
+            ];
+          }
+        } catch (e) {
+          console.error('Error converting TS to HLS:', e);
+        }
+      }
+      
+      return [url]; // Return original URL if not a TS file or conversion failed
+    }
+    
     // Create multiple sources from the original URL
     if (streamUrl) {
-      // Original URL
-      sources.push(streamUrl);
-      
-      // Create variations
-      const urlObj = new URL(streamUrl);
-      const pathParts = urlObj.pathname.split('/');
+      // Check if it's a direct TS file and try to convert to HLS
+      const potentialHlsUrls = convertToHlsIfNeeded(streamUrl);
+      sources = [...potentialHlsUrls];
       
       // Add timestamp to avoid caching
       const timestamp = Date.now();
-      sources[0] = addTimestamp(sources[0], timestamp);
+      sources = sources.map(url => addTimestamp(url, timestamp));
       
       // Create alternative sources
       if (streamUrl.includes('beIN_Sports')) {
@@ -287,28 +332,19 @@
             sources.push(addTimestamp(newUrl, timestamp));
           }
         }
-      } else {
-        // Generic alternatives - try different variations
-        if (pathParts.length > 1) {
-          // Try changing numbers in the URL
-          const lastPart = pathParts[pathParts.length - 1];
-          const numMatch = lastPart.match(/(\d+)/);
-          
-          if (numMatch) {
-            const num = parseInt(numMatch[1]);
-            for (let i = 1; i <= 3; i++) {
-              const newNum = num + i;
-              const newLastPart = lastPart.replace(/\d+/, newNum);
-              pathParts[pathParts.length - 1] = newLastPart;
-              
-              const newPathname = pathParts.join('/');
-              const newUrl = new URL(streamUrl);
-              newUrl.pathname = newPathname;
-              
-              sources.push(addTimestamp(newUrl.toString(), timestamp));
-            }
+      } else if (streamUrl.includes('ASAL_MOVIES')) {
+        // For ASAL_MOVIES URLs, try different variations
+        const variations = [
+          streamUrl.replace('ASAL_MOVIES', 'ASAL_SPORTS'),
+          streamUrl.replace('ASAL_MOVIES', 'ASAL_HD'),
+          streamUrl.replace('ASAL_MOVIES', 'ASAL_PREMIUM')
+        ];
+        
+        variations.forEach(url => {
+          if (url !== streamUrl) {
+            sources.push(addTimestamp(url, timestamp));
           }
-        }
+        });
       }
     }
     
@@ -319,6 +355,8 @@
     
     // Function to add timestamp to URL
     function addTimestamp(url, timestamp) {
+      if (!url) return url;
+      
       const separator = url.includes('?') ? '&' : '?';
       return `${url}${separator}_t=${timestamp}`;
     }
@@ -331,13 +369,13 @@
       // Animate progress
       let progress = 0;
       const progressInterval = setInterval(() => {
-        progress += Math.random() * 10; // Faster progress for better UX
+        progress += Math.random() * 15; // Even faster progress for better UX
         if (progress >= 99) {
           progress = 99;
           clearInterval(progressInterval);
         }
         loadingProgress.textContent = `${Math.floor(progress)}%`;
-      }, 200);
+      }, 150);
       
       // Set timeout to show error if loading takes too long
       setTimeout(() => {
@@ -345,7 +383,7 @@
           showError('Stream is taking too long to load. Try another source.');
           clearInterval(progressInterval);
         }
-      }, 8000); // Reduced timeout for better UX
+      }, 6000); // Further reduced timeout for better UX
     }
     
     // Function to hide loading
@@ -377,6 +415,29 @@
       }, 2000);
     }
     
+    // Function to load direct TS file
+    function loadDirectTs(url) {
+      // For direct TS files, we'll use a simple video element
+      video.src = url;
+      video.addEventListener('loadedmetadata', function onMetadata() {
+        video.removeEventListener('loadedmetadata', onMetadata);
+        hideLoading();
+        video.play()
+          .then(() => {
+            notifyParentPlaying();
+          })
+          .catch(e => {
+            console.error('Direct TS playback error:', e);
+            showError('Playback error: ' + e.message);
+          });
+      });
+      
+      video.addEventListener('error', function onError() {
+        console.error('Video error:', video.error);
+        tryNextSource();
+      });
+    }
+    
     // Function to load stream
     function loadStream(url) {
       if (!url) {
@@ -390,6 +451,12 @@
       video.pause();
       video.removeAttribute('src');
       video.load();
+      
+      // Check if it's a direct TS file
+      if (isTsFile(url)) {
+        loadDirectTs(url);
+        return;
+      }
       
       // Try direct playback first (for Safari)
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -426,14 +493,15 @@
         const hls = new Hls({
           maxBufferLength: 30,
           maxMaxBufferLength: 60,
-          fragLoadingTimeOut: 8000, // Reduced timeout
-          manifestLoadingTimeOut: 8000, // Reduced timeout
-          levelLoadingTimeOut: 8000, // Reduced timeout
+          fragLoadingTimeOut: 6000, // Further reduced timeout
+          manifestLoadingTimeOut: 6000, // Further reduced timeout
+          levelLoadingTimeOut: 6000, // Further reduced timeout
           startLevel: 0, // Start with lowest quality for faster loading
           progressive: true, // Enable progressive loading
           lowLatencyMode: true,
           xhrSetup: function(xhr) {
             xhr.setRequestHeader('Cache-Control', 'no-cache');
+            xhr.setRequestHeader('User-Agent', 'ExoPlayer'); // Add ExoPlayer user agent
           }
         });
         
@@ -500,7 +568,8 @@
     function retryCurrentSource() {
       // Add new timestamp to force refresh
       const timestamp = Date.now();
-      sources[currentSourceIndex] = addTimestamp(sources[currentSourceIndex].split('?')[0], timestamp);
+      const baseUrl = sources[currentSourceIndex].split('?')[0];
+      sources[currentSourceIndex] = addTimestamp(baseUrl, timestamp);
       loadStream(sources[currentSourceIndex]);
     }
     

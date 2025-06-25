@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Home, PlayCircle, Clock, CheckCircle, Tv } from 'lucide-react';
+import { Home, PlayCircle, Clock, CheckCircle, Tv, Heart } from 'lucide-react';
 
 export function Navbar() {
   const location = useLocation();
@@ -11,7 +11,7 @@ export function Navbar() {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gray-950/95 backdrop-blur-md border-t border-gray-800 p-2 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.2)]">
       <Tabs defaultValue={currentPath} className="w-full">
-        <TabsList className="w-full bg-gray-900 grid grid-cols-5 h-auto p-1">
+        <TabsList className="w-full bg-gray-900 grid grid-cols-6 h-auto p-1">
           <TabsTrigger 
             value="/" 
             asChild 
@@ -60,6 +60,16 @@ export function Navbar() {
             <Link to="/tv" className="flex flex-col items-center py-1.5">
               <Tv className="h-5 w-5" />
               <span className="text-xs mt-1">TV</span>
+            </Link>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="/favorites" 
+            asChild 
+            className="flex-1 data-[state=active]:bg-gray-800 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(56,239,125,0.3)]"
+          >
+            <Link to="/favorites" className="flex flex-col items-center py-1.5">
+              <Heart className="h-5 w-5" />
+              <span className="text-xs mt-1">Favs</span>
             </Link>
           </TabsTrigger>
         </TabsList>

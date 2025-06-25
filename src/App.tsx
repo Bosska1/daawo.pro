@@ -1,27 +1,44 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HomePage } from '@/pages/home-page';
+import { LivePage } from '@/pages/live-page';
+import { UpcomingPage } from '@/pages/upcoming-page';
+import { FinishedPage } from '@/pages/finished-page';
+import { AdminPage } from '@/pages/admin-page';
+import { Header } from '@/components/header';
+import { Navbar } from '@/components/navbar';
+import { Toaster } from '@/components/ui/toaster';
+import './App.css';
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col">
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route
+            path="*"
+            element={
+              <>
+                <Header />
+                <main className="flex-1 pt-2 pb-16">
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/live" element={<LivePage />} />
+                    <Route path="/upcoming" element={<UpcomingPage />} />
+                    <Route path="/finished" element={<FinishedPage />} />
+                  </Routes>
+                </main>
+                <Navbar />
+              </>
+            }
+          />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+        <Toaster />
+      </div>
+    </Router>
+  );
+}
 
 export default App;

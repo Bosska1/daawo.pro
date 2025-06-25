@@ -17,7 +17,6 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
   const [streamSources, setStreamSources] = useState<string[]>([]);
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -82,16 +81,6 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
     setIsMuted(!isMuted);
     if (videoRef.current) {
       videoRef.current.muted = !isMuted;
-    } else if (iframeRef.current) {
-      try {
-        // Try to access iframe content to mute/unmute
-        const iframeWindow = iframeRef.current.contentWindow;
-        if (iframeWindow) {
-          iframeWindow.postMessage({ action: isMuted ? 'unmute' : 'mute' }, '*');
-        }
-      } catch (e) {
-        console.log('Could not control iframe audio');
-      }
     }
   };
 
@@ -139,34 +128,6 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
         }
       }, 1000);
     }
-    // Handle refresh for iframe
-    else if (iframeRef.current && streamSources[currentSourceIndex]) {
-      const iframe = iframeRef.current;
-      const currentSrc = streamSources[currentSourceIndex];
-      
-      // Add a timestamp parameter to force reload and bypass cache
-      const timestamp = new Date().getTime();
-      const separator = currentSrc.includes('?') ? '&' : '?';
-      const refreshedSrc = `${currentSrc}${separator}_t=${timestamp}`;
-      
-      iframe.src = 'about:blank';
-      
-      // Use a shorter timeout for faster reload
-      setTimeout(() => {
-        iframe.src = refreshedSrc;
-        // Set a backup timer in case onLoad doesn't fire
-        if (loadingTimeoutRef.current) {
-          clearTimeout(loadingTimeoutRef.current);
-        }
-        loadingTimeoutRef.current = setTimeout(() => {
-          setIsLoading(false);
-          setLoadingProgress(100);
-          if (progressIntervalRef.current) {
-            clearInterval(progressIntervalRef.current);
-          }
-        }, 1000);
-      }, 50);
-    }
   };
 
   const switchSource = () => {
@@ -199,7 +160,7 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
     }, 1000);
   };
 
-  const handleMediaLoad = () => {
+  const handleVideoLoad = () => {
     setIsLoading(false);
     setLoadingProgress(100);
     if (loadingTimeoutRef.current) {
@@ -210,55 +171,13 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
     }
   };
 
-  const handleMediaError = () => {
+  const handleVideoError = () => {
     setStreamError(true);
     setIsLoading(false);
     setLoadingProgress(100);
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
-  };
-
-  // Create a direct video player for HLS streams
-  const createDirectPlayer = () => {
-    const currentSource = streamSources[currentSourceIndex];
-    
-    // For HLS streams, we'll use a direct video element instead of an iframe
-    if (currentSource && currentSource.includes('.m3u8')) {
-      return (
-        <div className="w-full h-full flex items-center justify-center bg-black">
-          <video 
-            ref={videoRef}
-            className="w-full h-full max-h-full"
-            autoPlay
-            controls
-            playsInline
-            muted={isMuted}
-            onLoadedData={handleMediaLoad}
-            onError={handleMediaError}
-          >
-            <source src={currentSource} type="application/x-mpegURL" />
-            Your browser does not support HTML5 video.
-          </video>
-        </div>
-      );
-    }
-    
-    // For other streams, use the iframe approach
-    return (
-      <iframe 
-        ref={iframeRef}
-        id="tv-stream-iframe"
-        src={currentSource}
-        className="absolute top-0 left-0 w-full h-full border-0"
-        allowFullScreen
-        onLoad={handleMediaLoad}
-        onError={handleMediaError}
-        sandbox="allow-same-origin allow-scripts allow-forms"
-        loading="eager"
-        allow="autoplay; fullscreen"
-      ></iframe>
-    );
   };
 
   return (
@@ -352,7 +271,21 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
         )}
         
         {streamSources[currentSourceIndex] ? (
-          createDirectPlayer()
+          <div className="w-full h-full flex items-center justify-center bg-black">
+            <video 
+              ref={videoRef}
+              className="w-full h-full max-h-full"
+              autoPlay
+              controls
+              playsInline
+              muted={isMuted}
+              onLoadedData={handleVideoLoad}
+              onError={handleVideoError}
+            >
+              <source src={streamSources[currentSourceIndex]} type="application/x-mpegURL" />
+              Your browser does not support HTML5 video.
+            </video>
+          </div>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <p className="text-gray-400">Stream not available</p>

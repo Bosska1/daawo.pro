@@ -40,15 +40,16 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
 
   return (
     <Card 
-      className={`w-full bg-gradient-to-br from-gray-900 to-gray-800 border-gray-800 hover:border-primary/50 transition-all duration-300 overflow-hidden relative group rounded-xl shadow-lg ${isHovered ? 'shadow-primary/20' : ''}`}
+      className={`w-full bg-gradient-to-br from-gray-900 to-gray-800 border-gray-800 hover:border-primary/50 transition-all duration-300 overflow-hidden relative group rounded-xl shadow-lg card-hover ${isHovered ? 'shadow-primary/20' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <CardContent className="p-5">
+      <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none"></div>
+      <CardContent className="p-5 relative z-10">
         <div className="flex flex-col space-y-4">
           {/* Competition */}
           <div className="flex items-center justify-center">
-            <span className="text-sm text-gray-400 flex items-center">
+            <span className="text-sm text-gray-400 flex items-center glass px-3 py-1 rounded-full">
               <Trophy className="h-4 w-4 mr-1.5 text-primary/70" />
               {match.competition?.name}
             </span>
@@ -57,13 +58,13 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
           {/* Teams */}
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center space-y-2 w-2/5">
-              <span className="text-2xl">{match.team_a?.flag}</span>
+              <span className="text-3xl animate-float">{match.team_a?.flag}</span>
               <span className="text-base font-semibold text-center">{match.team_a?.name}</span>
             </div>
             
             {match.status === 'finished' ? (
               <div className="flex flex-col items-center justify-center w-1/5">
-                <div className="flex items-center justify-center bg-gray-800/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-inner">
+                <div className="flex items-center justify-center glass rounded-lg px-4 py-2 shadow-inner">
                   <span className="text-xl font-bold text-primary">{match.score_team_a}</span>
                   <span className="text-gray-400 mx-2">-</span>
                   <span className="text-xl font-bold text-primary">{match.score_team_b}</span>
@@ -75,7 +76,7 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
               </div>
             ) : match.status === 'live' ? (
               <div className="flex flex-col items-center justify-center w-1/5">
-                <div className="flex items-center justify-center bg-red-900/30 backdrop-blur-sm rounded-lg px-4 py-2 shadow-inner border border-red-900/30">
+                <div className="flex items-center justify-center bg-red-900/30 backdrop-blur-sm rounded-lg px-4 py-2 shadow-inner border border-red-900/30 animate-pulse-glow">
                   <span className="text-xl font-bold text-white">{match.score_team_a || 0}</span>
                   <span className="text-gray-400 mx-2">-</span>
                   <span className="text-xl font-bold text-white">{match.score_team_b || 0}</span>
@@ -87,7 +88,7 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center w-1/5">
-                <div className="flex items-center justify-center bg-gray-800/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-inner">
+                <div className="flex items-center justify-center glass rounded-lg px-4 py-2 shadow-inner">
                   <span className="text-gray-400">VS</span>
                 </div>
                 <span className="text-xs text-gray-500 mt-2 flex items-center">
@@ -98,7 +99,7 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
             )}
             
             <div className="flex flex-col items-center space-y-2 w-2/5">
-              <span className="text-2xl">{match.team_b?.flag}</span>
+              <span className="text-3xl animate-float">{match.team_b?.flag}</span>
               <span className="text-base font-semibold text-center">{match.team_b?.name}</span>
             </div>
           </div>
@@ -106,14 +107,14 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
           {/* Match Info */}
           <div className="flex items-center justify-center">
             {match.status === 'upcoming' && (
-              <span className="text-sm text-gray-400 flex items-center">
+              <span className="text-sm text-gray-400 flex items-center glass px-3 py-1 rounded-full">
                 <Clock className="h-4 w-4 mr-1.5 text-yellow-500/70" />
                 {formatMatchTime(match.kickoff_time)}
               </span>
             )}
             
             {match.status === 'finished' && (
-              <span className="text-sm text-gray-400 flex items-center">
+              <span className="text-sm text-gray-400 flex items-center glass px-3 py-1 rounded-full">
                 <Calendar className="h-4 w-4 mr-1.5 text-green-500/70" />
                 {formatDate(match.kickoff_time)}
               </span>
@@ -122,7 +123,7 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
         </div>
       </CardContent>
       
-      <CardFooter className="p-5 pt-0 flex justify-center">
+      <CardFooter className="p-5 pt-0 relative z-10">
         {match.status === 'live' && (
           <Button 
             variant="glow" 
@@ -134,7 +135,7 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
         )}
         
         {match.status === 'upcoming' && (
-          <Button variant="outline" className="w-full" disabled>
+          <Button variant="outline" className="w-full glass" disabled>
             <Clock className="h-4 w-4 mr-2" /> Not Started
           </Button>
         )}
@@ -142,7 +143,7 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
         {match.status === 'finished' && match.highlights_url && (
           <Button 
             variant="outline" 
-            className="w-full hover:bg-gray-800"
+            className="w-full hover:bg-gray-800 glass"
             onClick={() => window.open(match.highlights_url, '_blank')}
           >
             <ExternalLink className="h-4 w-4 mr-2" /> Watch Highlights
@@ -156,7 +157,7 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
       {/* Live Indicator */}
       {match.status === 'live' && (
         <div className="absolute top-3 right-3">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-900/60 backdrop-blur-sm text-red-200 shadow-lg">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-900/60 backdrop-blur-sm text-red-200 shadow-lg animate-pulse-glow">
             <span className="w-1.5 h-1.5 mr-1 bg-red-500 rounded-full animate-pulse"></span>
             LIVE
           </span>
@@ -186,7 +187,8 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
       {/* Ad Popup */}
       {showAd && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full relative shadow-2xl">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full relative shadow-2xl animate-float">
+            <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none rounded-xl"></div>
             <button 
               className="absolute top-3 right-3 text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-full p-1.5 transition-colors"
               onClick={closeAd}
@@ -194,14 +196,14 @@ export function MatchCard({ match, onWatchClick }: MatchCardProps) {
               ✕
             </button>
             <div className="text-center mb-4 text-primary text-4xl">📱</div>
-            <h3 className="text-xl font-bold mb-4 text-center bg-gradient-to-r from-blue-500 to-green-400 bg-clip-text text-transparent">Enjoying the Match?</h3>
+            <h3 className="text-xl font-bold mb-4 text-center gradient-text">Enjoying the Match?</h3>
             <p className="text-gray-300 mb-6 text-center">
               Follow Us on Telegram for More Free Streams and Exclusive Content!
             </p>
             <div className="flex justify-center">
               <Button 
                 variant="glow" 
-                className="w-full"
+                className="w-full animate-pulse-glow"
                 onClick={joinTelegram}
               >
                 Join Now

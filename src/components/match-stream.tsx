@@ -24,41 +24,24 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     
-    // Start loading the stream
-    loadStream();
-    
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
-  const loadStream = () => {
-    setIsLoading(true);
-    setStreamError(false);
-    
     // Listen for messages from the iframe
-    window.addEventListener('message', function handleMessage(event) {
+    const handleMessage = (event: MessageEvent) => {
       if (event.data === 'videoPlaying') {
         setIsLoading(false);
         setStreamError(false);
-        // Remove the event listener once we've received the message
-        window.removeEventListener('message', handleMessage);
       } else if (event.data === 'videoError') {
         setStreamError(true);
         setIsLoading(false);
-        // Remove the event listener once we've received the message
-        window.removeEventListener('message', handleMessage);
       }
-    });
+    };
     
-    // Set a timeout to show error if stream doesn't load
-    setTimeout(() => {
-      if (isLoading) {
-        setStreamError(true);
-        setIsLoading(false);
-      }
-    }, 15000);
-  };
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement && containerRef.current) {
@@ -96,7 +79,6 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
   // Create stream URL with timestamp to prevent caching
   const getStreamUrl = () => {
     if (!match.stream_url) {
-      // If no stream URL, use a fallback
       return `/stream-player.html?_t=${Date.now()}`;
     }
     
@@ -138,43 +120,6 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         ref={containerRef}
         className="relative w-full flex-1 bg-black"
       >
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
-            <div className="flex flex-col items-center">
-              <div className="relative w-24 h-24">
-                <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-                <div className="absolute inset-0 rounded-full border-4 border-t-primary border-l-transparent border-r-transparent border-b-transparent animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <PlayCircle className="h-10 w-10 text-primary animate-pulse" />
-                </div>
-              </div>
-              <p className="text-gray-300 mt-4 text-lg">Loading stream...</p>
-            </div>
-          </div>
-        )}
-        
-        {streamError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
-            <div className="bg-gray-900/90 p-6 rounded-xl max-w-md text-center">
-              <div className="text-yellow-500 text-5xl mb-4">⚠️</div>
-              <h3 className="text-xl font-bold mb-3">Stream Error</h3>
-              <p className="text-gray-300 mb-4">
-                Unable to load the stream. The source may be unavailable.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button onClick={handleRefresh} className="flex items-center">
-                  <RotateCw className="h-4 w-4 mr-2" />
-                  Try Again
-                </Button>
-                <Button onClick={onBack} variant="outline">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Go Back
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-        
         <iframe
           ref={iframeRef}
           src={getStreamUrl()}

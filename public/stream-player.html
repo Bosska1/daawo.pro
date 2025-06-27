@@ -22,9 +22,12 @@
       width: 100%;
       height: 100%;
       background-color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
-    iframe {
+    iframe, video {
       width: 100%;
       height: 100%;
       border: none;
@@ -33,6 +36,8 @@
       left: 0;
       right: 0;
       bottom: 0;
+      object-fit: contain;
+      background-color: #000;
     }
     
     .error-container {
@@ -161,16 +166,63 @@
       font-size: 14px;
       opacity: 0;
       transition: opacity 0.3s ease;
+      z-index: 20;
     }
     
     .message.show {
       opacity: 1;
     }
+    
+    /* Video controls */
+    .video-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 15;
+    }
+    
+    #playerContainer:hover .video-controls {
+      opacity: 1;
+    }
+    
+    .control-button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+    
+    .control-button:hover {
+      opacity: 1;
+    }
+    
+    /* Direct video player */
+    #directPlayer {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
   <div id="playerContainer">
-    <!-- The iframe will be inserted here by JavaScript -->
+    <!-- Video player will be inserted here -->
   </div>
   
   <!-- Loading indicator -->
@@ -219,7 +271,9 @@
     
     let currentSourceIndex = 0;
     let sources = [];
-    let currentIframe = null;
+    let currentPlayer = null;
+    let loadingTimeout = null;
+    let progressInterval = null;
     
     // Function to add timestamp to URL
     function addTimestamp(url) {
@@ -235,34 +289,39 @@
       loadingContainer.style.display = 'flex';
       errorContainer.style.display = 'none';
       
-      // Animate progress
+      // Clear any existing intervals
+      if (progressInterval) clearInterval(progressInterval);
+      
+      // Animate progress - faster for better perceived performance
       let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += Math.random() * 15; // Faster progress for better UX
+      progressInterval = setInterval(() => {
+        progress += Math.random() * 20; // Even faster progress
         if (progress >= 99) {
           progress = 99;
           clearInterval(progressInterval);
         }
         loadingProgress.textContent = `${Math.floor(progress)}%`;
-      }, 100);
+      }, 80);
       
-      // Set timeout to show error if loading takes too long
-      setTimeout(() => {
+      // Set timeout to show error if loading takes too long - shorter timeout
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+      loadingTimeout = setTimeout(() => {
         if (loadingContainer.style.display !== 'none') {
-          showError('Stream is taking too long to load. Try another source.');
+          showError('Stream is taking too long to load. Trying another source...');
           clearInterval(progressInterval);
+          // Auto-try next source
+          setTimeout(tryNextSource, 1000);
         }
-      }, 10000);
+      }, 5000); // Reduced from 10s to 5s
       
       return progressInterval;
     }
     
     // Function to hide loading
-    function hideLoading(progressInterval) {
+    function hideLoading() {
       loadingContainer.style.display = 'none';
-      if (progressInterval) {
-        clearInterval(progressInterval);
-      }
+      if (progressInterval) clearInterval(progressInterval);
+      if (loadingTimeout) clearTimeout(loadingTimeout);
     }
     
     // Function to show error
@@ -289,24 +348,108 @@
       }, 2000);
     }
     
-    // Function to create and load iframe
-    function createIframe(url) {
-      // Remove existing iframe if any
-      if (currentIframe) {
-        playerContainer.removeChild(currentIframe);
+    // Function to create iframe player
+    function createIframePlayer(url) {
+      // Remove existing player if any
+      if (currentPlayer) {
+        playerContainer.removeChild(currentPlayer);
       }
       
       // Create new iframe
       const iframe = document.createElement('iframe');
       iframe.allowFullscreen = true;
       iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+      iframe.loading = 'eager'; // Eager loading for faster display
       iframe.src = url;
       
       // Add iframe to container
       playerContainer.appendChild(iframe);
-      currentIframe = iframe;
+      currentPlayer = iframe;
       
       return iframe;
+    }
+    
+    // Function to create direct video player
+    function createDirectPlayer(url) {
+      // Remove existing player if any
+      if (currentPlayer) {
+        playerContainer.removeChild(currentPlayer);
+      }
+      
+      // Create video element
+      const video = document.createElement('video');
+      video.id = 'directPlayer';
+      video.controls = true;
+      video.autoplay = true;
+      video.muted = false;
+      video.playsInline = true;
+      video.src = url;
+      
+      // Add video controls
+      const controlsDiv = document.createElement('div');
+      controlsDiv.className = 'video-controls';
+      controlsDiv.innerHTML = `
+        <button class="control-button" id="playPauseBtn">⏵</button>
+        <button class="control-button" id="muteBtn">🔊</button>
+        <button class="control-button" id="fullscreenBtn">⛶</button>
+      `;
+      
+      // Add video and controls to container
+      playerContainer.appendChild(video);
+      playerContainer.appendChild(controlsDiv);
+      currentPlayer = video;
+      
+      // Setup control buttons
+      document.getElementById('playPauseBtn').addEventListener('click', () => {
+        if (video.paused) {
+          video.play();
+          document.getElementById('playPauseBtn').textContent = '⏸';
+        } else {
+          video.pause();
+          document.getElementById('playPauseBtn').textContent = '⏵';
+        }
+      });
+      
+      document.getElementById('muteBtn').addEventListener('click', () => {
+        video.muted = !video.muted;
+        document.getElementById('muteBtn').textContent = video.muted ? '🔇' : '🔊';
+      });
+      
+      document.getElementById('fullscreenBtn').addEventListener('click', () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          playerContainer.requestFullscreen();
+        }
+      });
+      
+      // Setup video events
+      video.addEventListener('playing', () => {
+        hideLoading();
+        // Notify parent window
+        try {
+          window.parent.postMessage('videoPlaying', '*');
+        } catch (e) {
+          console.error('Error sending message to parent:', e);
+        }
+      });
+      
+      video.addEventListener('error', () => {
+        console.error('Video error:', video.error);
+        tryNextSource();
+      });
+      
+      return video;
+    }
+    
+    // Function to determine if URL is HLS stream
+    function isHlsStream(url) {
+      return url && (url.includes('.m3u8') || url.includes('playlist.m3u8'));
+    }
+    
+    // Function to determine if URL is direct media
+    function isDirectMedia(url) {
+      return url && (url.includes('.mp4') || url.includes('.webm') || url.includes('.ts'));
     }
     
     // Function to load stream
@@ -316,30 +459,46 @@
         return;
       }
       
-      const progressInterval = showLoading();
+      showLoading();
       
-      // Create and load iframe
-      const iframe = createIframe(url);
-      
-      // Set a timeout to hide loading and notify parent
-      setTimeout(() => {
-        hideLoading(progressInterval);
+      // Determine player type based on URL
+      if (isDirectMedia(url) || isHlsStream(url)) {
+        // Use direct video player for media files or HLS
+        const video = createDirectPlayer(url);
         
-        // Notify parent window
-        try {
-          window.parent.postMessage('videoPlaying', '*');
-        } catch (e) {
-          console.error('Error sending message to parent:', e);
-        }
-      }, 3000); // Short timeout for better UX
-      
-      // Set timeout to check if iframe loaded successfully
-      setTimeout(() => {
-        // If still loading, consider it an error
-        if (loadingContainer.style.display !== 'none') {
-          tryNextSource();
-        }
-      }, 8000);
+        // Set a shorter timeout for better UX
+        setTimeout(() => {
+          if (loadingContainer.style.display !== 'none') {
+            // If still loading after 3 seconds, try iframe as fallback
+            createIframePlayer(url);
+            
+            // And set another short timeout to hide loading
+            setTimeout(() => {
+              hideLoading();
+              // Notify parent window
+              try {
+                window.parent.postMessage('videoPlaying', '*');
+              } catch (e) {
+                console.error('Error sending message to parent:', e);
+              }
+            }, 2000);
+          }
+        }, 3000);
+      } else {
+        // Use iframe for other URLs (YouTube, etc.)
+        createIframePlayer(url);
+        
+        // Set a short timeout to hide loading for better UX
+        setTimeout(() => {
+          hideLoading();
+          // Notify parent window
+          try {
+            window.parent.postMessage('videoPlaying', '*');
+          } catch (e) {
+            console.error('Error sending message to parent:', e);
+          }
+        }, 2000);
+      }
     }
     
     // Function to try next source
@@ -391,8 +550,23 @@
     // Listen for messages from parent window
     window.addEventListener('message', function(event) {
       if (event.data === 'toggleMute') {
-        // Mute/unmute functionality would go here if possible
-        showMessage('Mute toggled');
+        if (currentPlayer && currentPlayer.tagName === 'VIDEO') {
+          currentPlayer.muted = !currentPlayer.muted;
+          showMessage(currentPlayer.muted ? 'Muted' : 'Unmuted');
+          
+          if (document.getElementById('muteBtn')) {
+            document.getElementById('muteBtn').textContent = currentPlayer.muted ? '🔇' : '🔊';
+          }
+        } else {
+          showMessage('Mute toggled');
+        }
+      }
+    });
+    
+    // Handle fullscreen changes
+    document.addEventListener('fullscreenchange', function() {
+      if (document.getElementById('fullscreenBtn')) {
+        document.getElementById('fullscreenBtn').textContent = document.fullscreenElement ? '⛶' : '⛶';
       }
     });
   </script>

@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Match } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Maximize, Minimize, RefreshCw, Volume2, VolumeX, PlayCircle, RotateCw } from 'lucide-react';
+import { ArrowLeft, Maximize, Minimize, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 
 interface MatchStreamProps {
   match: Match;
@@ -37,9 +37,19 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     
     window.addEventListener('message', handleMessage);
     
+    // Preload the stream player
+    const preloadLink = document.createElement('link');
+    preloadLink.rel = 'preload';
+    preloadLink.href = '/stream-player.html';
+    preloadLink.as = 'document';
+    document.head.appendChild(preloadLink);
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       window.removeEventListener('message', handleMessage);
+      if (preloadLink.parentNode) {
+        document.head.removeChild(preloadLink);
+      }
     };
   }, []);
 
@@ -118,7 +128,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
       
       <div 
         ref={containerRef}
-        className="relative w-full flex-1 bg-black"
+        className="relative w-full flex-1 bg-black flex items-center justify-center overflow-hidden"
       >
         <iframe
           ref={iframeRef}
@@ -128,6 +138,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
           allowFullScreen
           loading="eager"
           sandbox="allow-same-origin allow-scripts allow-forms"
+          style={{ aspectRatio: '16/9', maxHeight: '100%', maxWidth: '100%' }}
         ></iframe>
       </div>
       

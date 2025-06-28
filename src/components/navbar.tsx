@@ -18,7 +18,7 @@ export function Navbar() {
   };
   
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-950/95 backdrop-blur-md border-t border-gray-800 p-2 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.2)]">
+    <div className="fixed bottom-0 left-0 right-0 bg-gray-950/95 backdrop-blur-md border-t border-gray-800 p-2 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.2)] navbar">
       <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none"></div>
       <Tabs defaultValue={getActiveTab()} value={getActiveTab()} className="w-full relative z-10">
         <TabsList className="w-full bg-gray-900 grid grid-cols-4 h-auto p-1 rounded-xl">

@@ -95,8 +95,8 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     const timestamp = new Date().getTime();
     const streamUrl = match.stream_url;
     
-    // Create URL for our custom stream player
-    return `/stream-player.html?url=${encodeURIComponent(streamUrl)}&_t=${timestamp}`;
+    // Create URL for our custom stream player with team info
+    return `/stream-player.html?url=${encodeURIComponent(streamUrl)}&teamA=${encodeURIComponent(match.team_a?.name || '')}&teamB=${encodeURIComponent(match.team_b?.name || '')}&teamAFlag=${encodeURIComponent(match.team_a?.flag || '')}&teamBFlag=${encodeURIComponent(match.team_b?.flag || '')}&scoreA=${match.score_team_a || 0}&scoreB=${match.score_team_b || 0}&_t=${timestamp}`;
   };
 
   return (

@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stream Player</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
   <style>
     body, html {
       margin: 0;
@@ -27,16 +28,17 @@
       justify-content: center;
     }
     
-    iframe, video {
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background-color: #000;
+    }
+    
+    iframe {
       width: 100%;
       height: 100%;
       border: none;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      object-fit: contain;
       background-color: #000;
     }
     
@@ -69,20 +71,21 @@
     }
     
     .error-button {
-      background-color: #38ef7d;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
       color: #000;
       border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
+      padding: 10px 20px;
+      border-radius: 8px;
       cursor: pointer;
       font-weight: bold;
       margin-top: 10px;
       transition: all 0.2s ease;
+      box-shadow: 0 4px 10px rgba(56, 239, 125, 0.3);
     }
     
     .error-button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(56, 239, 125, 0.3);
+      box-shadow: 0 6px 15px rgba(56, 239, 125, 0.4);
     }
     
     .loading-container {
@@ -101,8 +104,8 @@
     
     .spinner {
       position: relative;
-      width: 60px;
-      height: 60px;
+      width: 80px;
+      height: 80px;
       margin-bottom: 20px;
     }
     
@@ -112,7 +115,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      border: 4px solid rgba(56, 239, 125, 0.2);
+      border: 4px solid rgba(56, 239, 125, 0.1);
       border-radius: 50%;
     }
     
@@ -124,6 +127,7 @@
       height: 100%;
       border: 4px solid transparent;
       border-top-color: #38ef7d;
+      border-right-color: #3b82f6;
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -138,13 +142,18 @@
     }
     
     .loading-text {
-      font-size: 16px;
+      font-size: 18px;
       margin-top: 10px;
-      color: #d1d5db;
+      color: #fff;
+      font-weight: bold;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
     
     .loading-progress {
-      font-size: 14px;
+      font-size: 16px;
       margin-top: 5px;
       color: #9ca3af;
     }
@@ -159,14 +168,15 @@
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background-color: rgba(0,0,0,0.7);
+      background: linear-gradient(to right, rgba(59, 130, 246, 0.8), rgba(56, 239, 125, 0.8));
       color: white;
-      padding: 8px 16px;
-      border-radius: 4px;
+      padding: 10px 20px;
+      border-radius: 8px;
       font-size: 14px;
       opacity: 0;
       transition: opacity 0.3s ease;
       z-index: 20;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     }
     
     .message.show {
@@ -179,12 +189,12 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: 40px;
-      background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+      height: 60px;
+      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 10px;
+      padding: 0 20px;
       opacity: 0;
       transition: opacity 0.3s ease;
       z-index: 15;
@@ -195,28 +205,87 @@
     }
     
     .control-button {
-      background: none;
+      background: rgba(255, 255, 255, 0.1);
       border: none;
       color: white;
       cursor: pointer;
-      width: 30px;
-      height: 30px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0.8;
-      transition: opacity 0.2s ease;
+      transition: all 0.2s ease;
+      margin: 0 5px;
     }
     
     .control-button:hover {
       opacity: 1;
+      background: rgba(56, 239, 125, 0.3);
+      transform: scale(1.1);
     }
     
-    /* Direct video player */
-    #directPlayer {
-      width: 100%;
+    .control-button svg {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .progress-container {
+      flex-grow: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      margin: 0 15px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    
+    .progress-bar {
       height: 100%;
-      object-fit: contain;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      width: 0%;
+      border-radius: 4px;
+      transition: width 0.1s linear;
+    }
+    
+    .team-info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px 15px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      z-index: 15;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    #playerContainer:hover .team-info {
+      opacity: 1;
+    }
+    
+    .team-logo {
+      width: 30px;
+      height: 30px;
+      margin-right: 10px;
+    }
+    
+    .team-name {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+    
+    .team-score {
+      font-weight: bold;
+      color: #38ef7d;
+    }
+    
+    .vs {
+      margin: 0 10px;
+      color: #9ca3af;
     }
   </style>
 </head>
@@ -232,7 +301,7 @@
       <div class="spinner-circle"></div>
       <div class="spinner-inner">▶</div>
     </div>
-    <div class="loading-text">Loading stream...</div>
+    <div class="loading-text">Loading your stream...</div>
     <div class="loading-progress" id="loadingProgress">0%</div>
   </div>
   
@@ -261,6 +330,12 @@
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     let streamUrl = urlParams.get('url');
+    let teamA = urlParams.get('teamA');
+    let teamB = urlParams.get('teamB');
+    let scoreA = urlParams.get('scoreA');
+    let scoreB = urlParams.get('scoreB');
+    let teamAFlag = urlParams.get('teamAFlag');
+    let teamBFlag = urlParams.get('teamBFlag');
     
     // Fallback streams if the main one fails
     const fallbackStreams = [
@@ -269,11 +344,37 @@
       'https://www.youtube.com/embed/live_stream?channel=UCt4t-jeY85JegMlZ-E5UWtA&autoplay=1'
     ];
     
+    // Additional stream sources based on the original URL
+    function generateAlternativeSources(url) {
+      if (!url) return [];
+      
+      const alternatives = [];
+      
+      // If it's an m3u8 stream, try alternative servers
+      if (url.includes('.m3u8')) {
+        // Try different CDN domains if present
+        if (url.includes('cdn')) {
+          alternatives.push(url.replace('cdn', 'cdn2'));
+          alternatives.push(url.replace('cdn', 'cdn3'));
+        }
+        
+        // Try different protocols
+        if (url.startsWith('https://')) {
+          alternatives.push(url.replace('https://', 'http://'));
+        } else if (url.startsWith('http://')) {
+          alternatives.push(url.replace('http://', 'https://'));
+        }
+      }
+      
+      return alternatives;
+    }
+    
     let currentSourceIndex = 0;
     let sources = [];
     let currentPlayer = null;
     let loadingTimeout = null;
     let progressInterval = null;
+    let hlsInstance = null;
     
     // Function to add timestamp to URL
     function addTimestamp(url) {
@@ -295,13 +396,13 @@
       // Animate progress - faster for better perceived performance
       let progress = 0;
       progressInterval = setInterval(() => {
-        progress += Math.random() * 20; // Even faster progress
+        progress += Math.random() * 25; // Even faster progress
         if (progress >= 99) {
           progress = 99;
           clearInterval(progressInterval);
         }
         loadingProgress.textContent = `${Math.floor(progress)}%`;
-      }, 80);
+      }, 50);
       
       // Set timeout to show error if loading takes too long - shorter timeout
       if (loadingTimeout) clearTimeout(loadingTimeout);
@@ -348,11 +449,273 @@
       }, 2000);
     }
     
-    // Function to create iframe player
+    // Function to create video player with HLS.js
+    function createVideoPlayer(url) {
+      // Remove existing player if any
+      if (currentPlayer) {
+        if (hlsInstance) {
+          hlsInstance.destroy();
+          hlsInstance = null;
+        }
+        playerContainer.removeChild(currentPlayer);
+      }
+      
+      // Create video element
+      const video = document.createElement('video');
+      video.id = 'videoPlayer';
+      video.controls = false;
+      video.autoplay = true;
+      video.muted = false;
+      video.playsInline = true;
+      
+      // Add video to container
+      playerContainer.appendChild(video);
+      currentPlayer = video;
+      
+      // Create team info display if team names are provided
+      if (teamA && teamB) {
+        const teamInfoDiv = document.createElement('div');
+        teamInfoDiv.className = 'team-info';
+        teamInfoDiv.innerHTML = `
+          <span class="team-name">${teamAFlag || ''} ${teamA}</span>
+          ${(scoreA !== null && scoreB !== null) ? 
+            `<span class="team-score">${scoreA}</span>` : ''}
+          <span class="vs">vs</span>
+          ${(scoreA !== null && scoreB !== null) ? 
+            `<span class="team-score">${scoreB}</span>` : ''}
+          <span class="team-name">${teamB} ${teamBFlag || ''}</span>
+        `;
+        playerContainer.appendChild(teamInfoDiv);
+      }
+      
+      // Create custom video controls
+      const controlsDiv = document.createElement('div');
+      controlsDiv.className = 'video-controls';
+      controlsDiv.innerHTML = `
+        <button class="control-button" id="playPauseBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </button>
+        <div class="progress-container" id="progressContainer">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <button class="control-button" id="muteBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+        <button class="control-button" id="fullscreenBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+        </button>
+      `;
+      playerContainer.appendChild(controlsDiv);
+      
+      // Setup control buttons
+      const playPauseBtn = document.getElementById('playPauseBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      
+      playPauseBtn.addEventListener('click', () => {
+        if (video.paused) {
+          video.play();
+          playPauseBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          `;
+        } else {
+          video.pause();
+          playPauseBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+          `;
+        }
+      });
+      
+      muteBtn.addEventListener('click', () => {
+        video.muted = !video.muted;
+        if (video.muted) {
+          muteBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+          `;
+        } else {
+          muteBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+          `;
+        }
+      });
+      
+      fullscreenBtn.addEventListener('click', () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          playerContainer.requestFullscreen();
+        }
+      });
+      
+      // Update progress bar
+      video.addEventListener('timeupdate', () => {
+        if (video.duration) {
+          const progress = (video.currentTime / video.duration) * 100;
+          progressBar.style.width = `${progress}%`;
+        }
+      });
+      
+      // Click on progress bar to seek
+      progressContainer.addEventListener('click', (e) => {
+        const rect = progressContainer.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        video.currentTime = pos * video.duration;
+      });
+      
+      // Setup HLS.js if supported and needed
+      if (Hls.isSupported() && (url.includes('.m3u8') || url.includes('playlist.m3u8'))) {
+        hlsInstance = new Hls({
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          startLevel: -1, // Auto quality selection
+          capLevelToPlayerSize: true,
+          debug: false
+        });
+        
+        hlsInstance.loadSource(url);
+        hlsInstance.attachMedia(video);
+        
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play()
+            .then(() => {
+              hideLoading();
+              showMessage('Stream loaded successfully');
+              // Notify parent window
+              try {
+                window.parent.postMessage('videoPlaying', '*');
+              } catch (e) {
+                console.error('Error sending message to parent:', e);
+              }
+            })
+            .catch(e => {
+              console.error('Error playing video:', e);
+              // Try to play muted (autoplay policy)
+              video.muted = true;
+              muteBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <line x1="23" y1="9" x2="17" y2="15"></line>
+                  <line x1="17" y1="9" x2="23" y2="15"></line>
+                </svg>
+              `;
+              video.play()
+                .then(() => {
+                  hideLoading();
+                  showMessage('Stream loaded (tap for sound)');
+                  // Notify parent window
+                  try {
+                    window.parent.postMessage('videoPlaying', '*');
+                  } catch (e) {
+                    console.error('Error sending message to parent:', e);
+                  }
+                })
+                .catch(e => {
+                  console.error('Error playing muted video:', e);
+                  showError('Browser blocked autoplay. Please tap to play.');
+                });
+            });
+        });
+        
+        hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            console.error('HLS error:', data);
+            switch(data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                showError('Network error. Trying another source...');
+                setTimeout(tryNextSource, 1000);
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                showError('Media error. Trying to recover...');
+                hlsInstance.recoverMediaError();
+                break;
+              default:
+                showError('Stream error. Trying another source...');
+                setTimeout(tryNextSource, 1000);
+                break;
+            }
+          }
+        });
+      } else {
+        // Fallback to native player
+        video.src = url;
+        
+        video.addEventListener('loadeddata', () => {
+          hideLoading();
+          showMessage('Stream loaded successfully');
+          // Notify parent window
+          try {
+            window.parent.postMessage('videoPlaying', '*');
+          } catch (e) {
+            console.error('Error sending message to parent:', e);
+          }
+        });
+        
+        video.addEventListener('error', () => {
+          console.error('Video error:', video.error);
+          showError('Stream error. Trying another source...');
+          setTimeout(tryNextSource, 1000);
+        });
+        
+        video.play()
+          .catch(e => {
+            console.error('Error playing video:', e);
+            // Try to play muted (autoplay policy)
+            video.muted = true;
+            muteBtn.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+              </svg>
+            `;
+            video.play()
+              .catch(e => {
+                console.error('Error playing muted video:', e);
+                showError('Browser blocked autoplay. Please tap to play.');
+              });
+          });
+      }
+      
+      return video;
+    }
+    
+    // Function to create iframe player for YouTube or other services
     function createIframePlayer(url) {
       // Remove existing player if any
       if (currentPlayer) {
+        if (hlsInstance) {
+          hlsInstance.destroy();
+          hlsInstance = null;
+        }
         playerContainer.removeChild(currentPlayer);
+        
+        // Remove any team info or controls
+        const teamInfo = document.querySelector('.team-info');
+        if (teamInfo) playerContainer.removeChild(teamInfo);
+        
+        const controls = document.querySelector('.video-controls');
+        if (controls) playerContainer.removeChild(controls);
       }
       
       // Create new iframe
@@ -366,65 +729,8 @@
       playerContainer.appendChild(iframe);
       currentPlayer = iframe;
       
-      return iframe;
-    }
-    
-    // Function to create direct video player
-    function createDirectPlayer(url) {
-      // Remove existing player if any
-      if (currentPlayer) {
-        playerContainer.removeChild(currentPlayer);
-      }
-      
-      // Create video element
-      const video = document.createElement('video');
-      video.id = 'directPlayer';
-      video.controls = true;
-      video.autoplay = true;
-      video.muted = false;
-      video.playsInline = true;
-      video.src = url;
-      
-      // Add video controls
-      const controlsDiv = document.createElement('div');
-      controlsDiv.className = 'video-controls';
-      controlsDiv.innerHTML = `
-        <button class="control-button" id="playPauseBtn">⏵</button>
-        <button class="control-button" id="muteBtn">🔊</button>
-        <button class="control-button" id="fullscreenBtn">⛶</button>
-      `;
-      
-      // Add video and controls to container
-      playerContainer.appendChild(video);
-      playerContainer.appendChild(controlsDiv);
-      currentPlayer = video;
-      
-      // Setup control buttons
-      document.getElementById('playPauseBtn').addEventListener('click', () => {
-        if (video.paused) {
-          video.play();
-          document.getElementById('playPauseBtn').textContent = '⏸';
-        } else {
-          video.pause();
-          document.getElementById('playPauseBtn').textContent = '⏵';
-        }
-      });
-      
-      document.getElementById('muteBtn').addEventListener('click', () => {
-        video.muted = !video.muted;
-        document.getElementById('muteBtn').textContent = video.muted ? '🔇' : '🔊';
-      });
-      
-      document.getElementById('fullscreenBtn').addEventListener('click', () => {
-        if (document.fullscreenElement) {
-          document.exitFullscreen();
-        } else {
-          playerContainer.requestFullscreen();
-        }
-      });
-      
-      // Setup video events
-      video.addEventListener('playing', () => {
+      // Hide loading after a short delay
+      setTimeout(() => {
         hideLoading();
         // Notify parent window
         try {
@@ -432,24 +738,9 @@
         } catch (e) {
           console.error('Error sending message to parent:', e);
         }
-      });
+      }, 2000);
       
-      video.addEventListener('error', () => {
-        console.error('Video error:', video.error);
-        tryNextSource();
-      });
-      
-      return video;
-    }
-    
-    // Function to determine if URL is HLS stream
-    function isHlsStream(url) {
-      return url && (url.includes('.m3u8') || url.includes('playlist.m3u8'));
-    }
-    
-    // Function to determine if URL is direct media
-    function isDirectMedia(url) {
-      return url && (url.includes('.mp4') || url.includes('.webm') || url.includes('.ts'));
+      return iframe;
     }
     
     // Function to load stream
@@ -462,42 +753,12 @@
       showLoading();
       
       // Determine player type based on URL
-      if (isDirectMedia(url) || isHlsStream(url)) {
-        // Use direct video player for media files or HLS
-        const video = createDirectPlayer(url);
-        
-        // Set a shorter timeout for better UX
-        setTimeout(() => {
-          if (loadingContainer.style.display !== 'none') {
-            // If still loading after 3 seconds, try iframe as fallback
-            createIframePlayer(url);
-            
-            // And set another short timeout to hide loading
-            setTimeout(() => {
-              hideLoading();
-              // Notify parent window
-              try {
-                window.parent.postMessage('videoPlaying', '*');
-              } catch (e) {
-                console.error('Error sending message to parent:', e);
-              }
-            }, 2000);
-          }
-        }, 3000);
-      } else {
-        // Use iframe for other URLs (YouTube, etc.)
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        // Use iframe for YouTube
         createIframePlayer(url);
-        
-        // Set a short timeout to hide loading for better UX
-        setTimeout(() => {
-          hideLoading();
-          // Notify parent window
-          try {
-            window.parent.postMessage('videoPlaying', '*');
-          } catch (e) {
-            console.error('Error sending message to parent:', e);
-          }
-        }, 2000);
+      } else {
+        // Use video player for everything else
+        createVideoPlayer(url);
       }
     }
     
@@ -524,6 +785,9 @@
       // Add timestamp to avoid caching
       sources[0] = addTimestamp(sources[0]);
       
+      // Add alternative sources based on the original URL
+      sources = [...sources, ...generateAlternativeSources(streamUrl)];
+      
       // Add fallback streams
       sources = [...sources, ...fallbackStreams];
     } else {
@@ -549,24 +813,49 @@
     
     // Listen for messages from parent window
     window.addEventListener('message', function(event) {
-      if (event.data === 'toggleMute') {
-        if (currentPlayer && currentPlayer.tagName === 'VIDEO') {
-          currentPlayer.muted = !currentPlayer.muted;
-          showMessage(currentPlayer.muted ? 'Muted' : 'Unmuted');
-          
-          if (document.getElementById('muteBtn')) {
-            document.getElementById('muteBtn').textContent = currentPlayer.muted ? '🔇' : '🔊';
+      if (event.data === 'toggleMute' && currentPlayer && currentPlayer.tagName === 'VIDEO') {
+        currentPlayer.muted = !currentPlayer.muted;
+        showMessage(currentPlayer.muted ? 'Muted' : 'Unmuted');
+        
+        const muteBtn = document.getElementById('muteBtn');
+        if (muteBtn) {
+          if (currentPlayer.muted) {
+            muteBtn.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+              </svg>
+            `;
+          } else {
+            muteBtn.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            `;
           }
-        } else {
-          showMessage('Mute toggled');
         }
       }
     });
     
     // Handle fullscreen changes
     document.addEventListener('fullscreenchange', function() {
-      if (document.getElementById('fullscreenBtn')) {
-        document.getElementById('fullscreenBtn').textContent = document.fullscreenElement ? '⛶' : '⛶';
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      if (fullscreenBtn) {
+        if (document.fullscreenElement) {
+          fullscreenBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 14h6m0 0v6m0-6l-7 7m17-11h-6m0 0V4m0 6l7-7"></path>
+            </svg>
+          `;
+        } else {
+          fullscreenBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+          `;
+        }
       }
     });
   </script>

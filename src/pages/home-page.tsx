@@ -5,7 +5,6 @@ import { supabase, Match } from '@/lib/supabase';
 import { MatchCard } from '@/components/match-card';
 import { MatchStream } from '@/components/match-stream';
 import { Button } from '@/components/ui/button';
-import { StickyAd } from '@/components/sticky-ad';
 import { Tv } from 'lucide-react';
 
 export function HomePage() {
@@ -150,7 +149,7 @@ export function HomePage() {
             <span className="text-gray-400 mr-2">⏳</span>
             Upcoming Matches
           </h2>
-          <Link to="/upcoming" className="text-sm text-primary hover:underline">
+          <Link to="/matches" className="text-sm text-primary hover:underline">
             View All
           </Link>
         </div>
@@ -184,7 +183,7 @@ export function HomePage() {
             <span className="text-gray-400 mr-2">✅</span>
             Finished Matches
           </h2>
-          <Link to="/finished" className="text-sm text-primary hover:underline">
+          <Link to="/matches" className="text-sm text-primary hover:underline">
             View All
           </Link>
         </div>
@@ -210,8 +209,6 @@ export function HomePage() {
           </div>
         )}
       </section>
-      
-      <StickyAd />
     </div>
   );
 }

@@ -28,12 +28,11 @@ function App() {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/matches" element={<MatchesPage />} />
                     <Route path="/live" element={<MatchesPage />} />
-                    <Route path="/upcoming" element={<MatchesPage />} />
-                    <Route path="/finished" element={<MatchesPage />} />
                     <Route path="/tv" element={<LiveTVsPage />} />
                     <Route path="/favorites" element={<FavoritesPage />} />
-                    {/* Redirect old routes to the new unified matches page */}
-                    <Route path="/matches/:status" element={<Navigate to="/matches" replace />} />
+                    {/* Redirect old routes to the matches page */}
+                    <Route path="/upcoming" element={<Navigate to="/matches" replace />} />
+                    <Route path="/finished" element={<Navigate to="/matches" replace />} />
                   </Routes>
                 </main>
                 <Navbar />

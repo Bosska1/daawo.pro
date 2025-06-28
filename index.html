@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#030712" />
     <meta name="description" content="Watch Live Football — Free & Fast!" />
     <link rel="apple-touch-icon" href="/icon-192x192.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>StreamGoal - Watch Live Football</title>
     <style>
       /* Ensure the body has the correct background color before React loads */
@@ -42,17 +42,56 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        flex-direction: column;
         height: 100vh;
         width: 100vw;
       }
       
+      .loader-logo {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(to right, #3b82f6, #38ef7d);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      
       .loader-circle {
-        width: 50px;
-        height: 50px;
+        position: relative;
+        width: 60px;
+        height: 60px;
+        margin-bottom: 1rem;
+      }
+      
+      .loader-circle:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         border-radius: 50%;
-        border: 4px solid #1a1a1a;
+        border: 4px solid rgba(56, 239, 125, 0.1);
+      }
+      
+      .loader-circle:after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 4px solid transparent;
         border-top-color: #38ef7d;
+        border-right-color: #3b82f6;
         animation: spin 1s linear infinite;
+      }
+      
+      .loader-text {
+        font-size: 1rem;
+        color: #9ca3af;
       }
       
       @keyframes spin {
@@ -65,7 +104,9 @@
   <body>
     <div id="root">
       <div class="initial-loader">
+        <div class="loader-logo">StreamGoal</div>
         <div class="loader-circle"></div>
+        <div class="loader-text">Loading amazing streams...</div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

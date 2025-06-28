@@ -34,7 +34,7 @@ export function Header() {
   };
 
   return (
-    <header className={`sticky top-0 z-20 w-full transition-all duration-300 ${
+    <header className={`sticky top-0 z-20 w-full transition-all duration-300 header ${
       isScrolled ? 'bg-gray-950/90 backdrop-blur-md shadow-md' : 'bg-gray-950'
     }`}>
       <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none"></div>
@@ -128,18 +128,11 @@ export function Header() {
                 Live Matches
               </Link>
               <Link 
-                to="/upcoming" 
+                to="/matches" 
                 className="px-3 py-2 rounded-md hover:bg-gray-900 transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Upcoming Matches
-              </Link>
-              <Link 
-                to="/finished" 
-                className="px-3 py-2 rounded-md hover:bg-gray-900 transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Finished Matches
+                All Matches
               </Link>
               <Link 
                 to="/tv" 

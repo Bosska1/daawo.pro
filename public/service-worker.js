@@ -1,6 +1,6 @@
 
 // Service worker for PWA functionality
-const CACHE_NAME = 'streamgoal-v1';
+const CACHE_NAME = 'streamgoal-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const urlsToCache = [
   '/favicon.svg',
   '/icon-192x192.png',
   '/icon-512x512.png',
+  '/splash-screen.png',
   '/stream-player.html'
 ];
 
@@ -53,6 +54,21 @@ self.addEventListener('fetch', event => {
     return;
   }
   
+  // For HTML pages, use network-first strategy
+  if (event.request.mode === 'navigate' || 
+      (event.request.method === 'GET' && 
+       event.request.headers.get('accept').includes('text/html'))) {
+    event.respondWith(
+      fetch(event.request)
+        .catch(error => {
+          // If network fails, serve from cache
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+  
+  // For other assets, use cache-first strategy
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -112,4 +128,9 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil(
     clients.openWindow(event.notification.data.url)
   );
+});
+
+// Handle app installation
+self.addEventListener('appinstalled', (event) => {
+  console.log('StreamGoal was installed');
 });

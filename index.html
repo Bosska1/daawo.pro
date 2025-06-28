@@ -4,10 +4,14 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#030712" />
     <meta name="description" content="Watch Live Football — Free & Fast!" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="StreamGoal" />
     <link rel="apple-touch-icon" href="/icon-192x192.png" />
+    <link rel="apple-touch-startup-image" href="/splash-screen.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>StreamGoal - Watch Live Football</title>
     <style>
@@ -19,6 +23,8 @@
         padding: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
           Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior-y: none;
       }
       
       /* Custom animations defined inline to ensure they're available immediately */
@@ -121,6 +127,25 @@
               console.log('ServiceWorker registration failed: ', error);
             });
         });
+      }
+      
+      // Check if this is the first visit
+      if (!localStorage.getItem('streamgoal_visited')) {
+        localStorage.setItem('streamgoal_show_welcome', 'true');
+      }
+      localStorage.setItem('streamgoal_visited', 'true');
+      
+      // iOS PWA fixes
+      // Prevent bounce effect
+      document.addEventListener('touchmove', function(e) {
+        if (document.documentElement.classList.contains('pwa-mode')) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Check if running as PWA on iOS
+      if (window.navigator.standalone) {
+        document.documentElement.classList.add('pwa-mode');
       }
     </script>
   </body>

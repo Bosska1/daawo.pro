@@ -182,111 +182,6 @@
     .message.show {
       opacity: 1;
     }
-    
-    /* Video controls */
-    .video-controls {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      z-index: 15;
-    }
-    
-    #playerContainer:hover .video-controls {
-      opacity: 1;
-    }
-    
-    .control-button {
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      color: white;
-      cursor: pointer;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0.8;
-      transition: all 0.2s ease;
-      margin: 0 5px;
-    }
-    
-    .control-button:hover {
-      opacity: 1;
-      background: rgba(56, 239, 125, 0.3);
-      transform: scale(1.1);
-    }
-    
-    .control-button svg {
-      width: 20px;
-      height: 20px;
-    }
-    
-    .progress-container {
-      flex-grow: 1;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      margin: 0 15px;
-      overflow: hidden;
-      cursor: pointer;
-    }
-    
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(to right, #3b82f6, #38ef7d);
-      width: 0%;
-      border-radius: 4px;
-      transition: width 0.1s linear;
-    }
-    
-    .team-info {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 10px 15px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      z-index: 15;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    
-    #playerContainer:hover .team-info {
-      opacity: 1;
-    }
-    
-    .team-logo {
-      width: 30px;
-      height: 30px;
-      margin-right: 10px;
-    }
-    
-    .team-name {
-      font-weight: bold;
-      margin-right: 5px;
-    }
-    
-    .team-score {
-      font-weight: bold;
-      color: #38ef7d;
-    }
-    
-    .vs {
-      margin: 0 10px;
-      color: #9ca3af;
-    }
   </style>
 </head>
 <body>
@@ -343,39 +238,6 @@
       'https://www.youtube.com/embed/live_stream?channel=UCNL1OpuVr6OU-FF9RWVFJFw&autoplay=1',
       'https://www.youtube.com/embed/live_stream?channel=UCt4t-jeY85JegMlZ-E5UWtA&autoplay=1'
     ];
-    
-    // Additional stream sources based on the original URL
-    function generateAlternativeSources(url) {
-      if (!url) return [];
-      
-      const alternatives = [];
-      
-      // If it's an m3u8 stream, try alternative servers
-      if (url.includes('.m3u8')) {
-        // Try different CDN domains if present
-        if (url.includes('cdn')) {
-          alternatives.push(url.replace('cdn', 'cdn2'));
-          alternatives.push(url.replace('cdn', 'cdn3'));
-        }
-        
-        // Try different protocols
-        if (url.startsWith('https://')) {
-          alternatives.push(url.replace('https://', 'http://'));
-        } else if (url.startsWith('http://')) {
-          alternatives.push(url.replace('http://', 'https://'));
-        }
-      }
-      
-      // If it's a .ts file, try to convert to m3u8
-      if (url.includes('.ts')) {
-        const tsBase = url.substring(0, url.lastIndexOf('/'));
-        alternatives.push(`${tsBase}/playlist.m3u8`);
-        alternatives.push(`${tsBase}/index.m3u8`);
-        alternatives.push(`${tsBase}/master.m3u8`);
-      }
-      
-      return alternatives;
-    }
     
     let currentSourceIndex = 0;
     let sources = [];
@@ -457,102 +319,7 @@
       }, 2000);
     }
     
-    // Function to create direct video element
-    function createDirectVideo(url) {
-      // Remove existing player if any
-      if (currentPlayer) {
-        if (hlsInstance) {
-          hlsInstance.destroy();
-          hlsInstance = null;
-        }
-        playerContainer.removeChild(currentPlayer);
-        
-        // Remove any team info or controls
-        const teamInfo = document.querySelector('.team-info');
-        if (teamInfo) playerContainer.removeChild(teamInfo);
-        
-        const controls = document.querySelector('.video-controls');
-        if (controls) playerContainer.removeChild(controls);
-      }
-      
-      // Create video element
-      const video = document.createElement('video');
-      video.id = 'videoPlayer';
-      video.controls = true; // Use native controls for better compatibility
-      video.autoplay = true;
-      video.muted = false;
-      video.playsInline = true;
-      video.setAttribute('playsinline', ''); // For iOS
-      video.setAttribute('webkit-playsinline', ''); // For older iOS
-      
-      // Add video to container
-      playerContainer.appendChild(video);
-      currentPlayer = video;
-      
-      // Create team info display if team names are provided
-      if (teamA && teamB) {
-        const teamInfoDiv = document.createElement('div');
-        teamInfoDiv.className = 'team-info';
-        teamInfoDiv.innerHTML = `
-          <span class="team-name">${teamAFlag || ''} ${teamA}</span>
-          ${(scoreA !== null && scoreB !== null) ? 
-            `<span class="team-score">${scoreA}</span>` : ''}
-          <span class="vs">vs</span>
-          ${(scoreA !== null && scoreB !== null) ? 
-            `<span class="team-score">${scoreB}</span>` : ''}
-          <span class="team-name">${teamB} ${teamBFlag || ''}</span>
-        `;
-        playerContainer.appendChild(teamInfoDiv);
-      }
-      
-      // Set source directly
-      video.src = url;
-      
-      // Handle events
-      video.addEventListener('loadeddata', () => {
-        hideLoading();
-        showMessage('Stream loaded successfully');
-        // Notify parent window
-        try {
-          window.parent.postMessage('videoPlaying', '*');
-        } catch (e) {
-          console.error('Error sending message to parent:', e);
-        }
-      });
-      
-      video.addEventListener('error', (e) => {
-        console.error('Video error:', video.error);
-        showError('Stream error. Trying another source...');
-        setTimeout(tryNextSource, 1000);
-      });
-      
-      // Try to play
-      video.play()
-        .catch(e => {
-          console.error('Error playing video:', e);
-          // Try to play muted (autoplay policy)
-          video.muted = true;
-          video.play()
-            .then(() => {
-              hideLoading();
-              showMessage('Stream loaded (tap for sound)');
-              // Notify parent window
-              try {
-                window.parent.postMessage('videoPlaying', '*');
-              } catch (e) {
-                console.error('Error sending message to parent:', e);
-              }
-            })
-            .catch(e => {
-              console.error('Error playing muted video:', e);
-              showError('Browser blocked autoplay. Please tap to play.');
-            });
-        });
-      
-      return video;
-    }
-    
-    // Function to create iframe player for YouTube or other services
+    // Function to create iframe player
     function createIframePlayer(url) {
       // Remove existing player if any
       if (currentPlayer) {
@@ -561,21 +328,14 @@
           hlsInstance = null;
         }
         playerContainer.removeChild(currentPlayer);
-        
-        // Remove any team info or controls
-        const teamInfo = document.querySelector('.team-info');
-        if (teamInfo) playerContainer.removeChild(teamInfo);
-        
-        const controls = document.querySelector('.video-controls');
-        if (controls) playerContainer.removeChild(controls);
       }
       
-      // Create new iframe
+      // Create iframe
       const iframe = document.createElement('iframe');
+      iframe.src = url;
       iframe.allowFullscreen = true;
       iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-      iframe.loading = 'eager'; // Eager loading for faster display
-      iframe.src = url;
+      iframe.setAttribute('frameborder', '0');
       
       // Add iframe to container
       playerContainer.appendChild(iframe);
@@ -595,70 +355,34 @@
       return iframe;
     }
     
-    // Function to load stream
-    function loadStream(url) {
-      if (!url) {
-        showError('No stream URL provided');
-        return;
+    // Function to create direct video player
+    function createVideoPlayer(url) {
+      // Remove existing player if any
+      if (currentPlayer) {
+        if (hlsInstance) {
+          hlsInstance.destroy();
+          hlsInstance = null;
+        }
+        playerContainer.removeChild(currentPlayer);
       }
       
-      showLoading();
+      // Create video element
+      const video = document.createElement('video');
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = false;
       
-      // Determine player type based on URL
-      if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        // Use iframe for YouTube
-        createIframePlayer(url);
-      } else if (url.includes('.m3u8') && Hls.isSupported()) {
-        // Use HLS.js for m3u8 streams
-        const video = document.createElement('video');
-        video.id = 'videoPlayer';
-        video.controls = true; // Use native controls for better compatibility
-        video.autoplay = true;
-        video.muted = false;
-        video.playsInline = true;
-        video.setAttribute('playsinline', ''); // For iOS
-        video.setAttribute('webkit-playsinline', ''); // For older iOS
-        
-        // Add video to container
-        if (currentPlayer) {
-          if (hlsInstance) {
-            hlsInstance.destroy();
-            hlsInstance = null;
-          }
-          playerContainer.removeChild(currentPlayer);
-          
-          // Remove any team info or controls
-          const teamInfo = document.querySelector('.team-info');
-          if (teamInfo) playerContainer.removeChild(teamInfo);
-          
-          const controls = document.querySelector('.video-controls');
-          if (controls) playerContainer.removeChild(controls);
-        }
-        
-        playerContainer.appendChild(video);
-        currentPlayer = video;
-        
-        // Create team info display if team names are provided
-        if (teamA && teamB) {
-          const teamInfoDiv = document.createElement('div');
-          teamInfoDiv.className = 'team-info';
-          teamInfoDiv.innerHTML = `
-            <span class="team-name">${teamAFlag || ''} ${teamA}</span>
-            ${(scoreA !== null && scoreB !== null) ? 
-              `<span class="team-score">${scoreA}</span>` : ''}
-            <span class="vs">vs</span>
-            ${(scoreA !== null && scoreB !== null) ? 
-              `<span class="team-score">${scoreB}</span>` : ''}
-            <span class="team-name">${teamB} ${teamBFlag || ''}</span>
-          `;
-          playerContainer.appendChild(teamInfoDiv);
-        }
-        
-        // Setup HLS.js
+      // Add video to container
+      playerContainer.appendChild(video);
+      currentPlayer = video;
+      
+      // Handle HLS streams
+      if (url.includes('.m3u8') && Hls.isSupported()) {
         hlsInstance = new Hls({
           maxBufferLength: 30,
           maxMaxBufferLength: 60,
-          startLevel: -1, // Auto quality selection
+          startLevel: -1,
           capLevelToPlayerSize: true,
           debug: false
         });
@@ -720,8 +444,56 @@
           }
         });
       } else {
-        // Use direct video element for everything else
-        createDirectVideo(url);
+        // Direct source for non-HLS streams
+        video.src = url;
+        
+        video.addEventListener('loadeddata', () => {
+          hideLoading();
+          showMessage('Stream loaded successfully');
+          // Notify parent window
+          try {
+            window.parent.postMessage('videoPlaying', '*');
+          } catch (e) {
+            console.error('Error sending message to parent:', e);
+          }
+        });
+        
+        video.addEventListener('error', () => {
+          console.error('Video error:', video.error);
+          showError('Stream error. Trying another source...');
+          setTimeout(tryNextSource, 1000);
+        });
+        
+        video.play()
+          .catch(e => {
+            console.error('Error playing video:', e);
+            // Try to play muted (autoplay policy)
+            video.muted = true;
+            video.play()
+              .catch(e => {
+                console.error('Error playing muted video:', e);
+                showError('Browser blocked autoplay. Please tap to play.');
+              });
+          });
+      }
+      
+      return video;
+    }
+    
+    // Function to load stream
+    function loadStream(url) {
+      if (!url) {
+        showError('No stream URL provided');
+        return;
+      }
+      
+      showLoading();
+      
+      // Determine player type based on URL
+      if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('embed')) {
+        createIframePlayer(url);
+      } else {
+        createVideoPlayer(url);
       }
     }
     
@@ -747,9 +519,6 @@
       
       // Add timestamp to avoid caching
       sources[0] = addTimestamp(sources[0]);
-      
-      // Add alternative sources based on the original URL
-      sources = [...sources, ...generateAlternativeSources(streamUrl)];
       
       // Add fallback streams
       sources = [...sources, ...fallbackStreams];
@@ -782,16 +551,10 @@
       }
     });
     
-    // Handle fullscreen changes
-    document.addEventListener('fullscreenchange', function() {
-      // Just for tracking fullscreen state
-    });
-    
     // Handle clicks on the player to play/pause
     playerContainer.addEventListener('click', function(e) {
       // Don't handle clicks on buttons or controls
       if (e.target.tagName === 'BUTTON' || 
-          e.target.closest('.video-controls') || 
           e.target.closest('.error-container')) {
         return;
       }

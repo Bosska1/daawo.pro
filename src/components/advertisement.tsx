@@ -20,6 +20,7 @@ export function Advertisement() {
   const [showPopup, setShowPopup] = useState(false);
   const [currentPopupAd, setCurrentPopupAd] = useState<Advertisement | null>(null);
   const [showBanner, setShowBanner] = useState(true);
+  const [currentBannerAd, setCurrentBannerAd] = useState<Advertisement | null>(null);
   const location = useLocation();
   
   useEffect(() => {
@@ -37,7 +38,7 @@ export function Advertisement() {
       if (error) throw error;
       
       if (!data || data.length === 0) {
-        // If no ads in database, create a default banner ad
+        // If no ads in database, create default ads
         const defaultBannerAd: Advertisement = {
           id: 'default-banner',
           name: 'Default Banner',
@@ -48,11 +49,48 @@ export function Advertisement() {
           is_active: true
         };
         
-        setAds([defaultBannerAd]);
+        const defaultPopupAd: Advertisement = {
+          id: 'default-popup',
+          name: 'Default Popup',
+          type: 'popup',
+          content: `<div class="ad-content">
+            <div class="text-center mb-4 text-primary text-4xl">📱</div>
+            <h3 class="text-xl font-bold mb-4 text-center gradient-text">Enjoying the Match?</h3>
+            <p class="text-gray-300 mb-6 text-center">
+              Follow Us on Telegram for More Free Streams and Exclusive Content!
+            </p>
+            <button class="px-4 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-md hover:from-blue-700 hover:to-green-600 transition-colors animate-pulse-glow">
+              Join Now
+            </button>
+          </div>`,
+          delay_seconds: 5,
+          click_url: 'https://t.me/streamgoal',
+          is_active: true
+        };
+        
+        setAds([defaultBannerAd, defaultPopupAd]);
+        setCurrentBannerAd(defaultBannerAd);
+        
+        // Show popup after delay
+        setTimeout(() => {
+          setCurrentPopupAd(defaultPopupAd);
+          setShowPopup(true);
+        }, 5000);
+        
         return;
       }
       
       setAds(data as Advertisement[]);
+      
+      // Find banner ads
+      const bannerAds = data.filter((ad: Advertisement) => ad.type === 'banner');
+      if (bannerAds.length > 0) {
+        // Select a random banner ad
+        const randomBannerAd = bannerAds[Math.floor(Math.random() * bannerAds.length)];
+        setCurrentBannerAd(randomBannerAd);
+        // Record impression
+        recordImpression(randomBannerAd.id);
+      }
       
       // Find popup ads for this page
       const popupAds = data.filter((ad: Advertisement) => ad.type === 'popup');
@@ -73,7 +111,7 @@ export function Advertisement() {
     } catch (error) {
       console.error('Error fetching advertisements:', error);
       
-      // Create a default banner ad if there's an error
+      // Create default ads if there's an error
       const defaultBannerAd: Advertisement = {
         id: 'default-banner',
         name: 'Default Banner',
@@ -85,11 +123,12 @@ export function Advertisement() {
       };
       
       setAds([defaultBannerAd]);
+      setCurrentBannerAd(defaultBannerAd);
     }
   };
   
   const recordImpression = async (adId: string) => {
-    if (adId === 'default-banner') return;
+    if (adId === 'default-banner' || adId === 'default-popup') return;
     
     try {
       await supabase.rpc('increment_ad_impression', { ad_id: adId });
@@ -99,7 +138,7 @@ export function Advertisement() {
   };
   
   const recordClick = async (adId: string) => {
-    if (adId === 'default-banner') return;
+    if (adId === 'default-banner' || adId === 'default-popup') return;
     
     try {
       await supabase.rpc('increment_ad_click', { ad_id: adId });
@@ -124,19 +163,15 @@ export function Advertisement() {
     setShowBanner(false);
   };
   
-  // Find banner ads
-  const bannerAds = ads.filter(ad => ad.type === 'banner');
-  const bannerAd = bannerAds.length > 0 ? bannerAds[0] : null;
-  
   return (
     <>
       {/* Banner ad */}
-      {showBanner && bannerAd && (
-        <div className="fixed bottom-16 left-0 right-0 bg-gradient-to-r from-blue-900/90 to-green-900/90 backdrop-blur-sm text-white py-2.5 px-4 text-sm z-10 shadow-lg flex items-center justify-between">
+      {showBanner && currentBannerAd && (
+        <div className="fixed bottom-16 left-0 right-0 bg-gradient-to-r from-blue-900/90 to-green-900/90 backdrop-blur-sm text-white py-2.5 px-4 text-sm z-10 shadow-lg flex items-center justify-between animate-in slide-in-from-bottom duration-300">
           <div 
             className="flex-1 cursor-pointer"
-            onClick={() => handleAdClick(bannerAd)}
-            dangerouslySetInnerHTML={{ __html: bannerAd.content }}
+            onClick={() => handleAdClick(currentBannerAd)}
+            dangerouslySetInnerHTML={{ __html: currentBannerAd.content }}
           />
           <button 
             onClick={closeBanner}
@@ -149,7 +184,7 @@ export function Advertisement() {
       
       {/* Popup ad */}
       {showPopup && currentPopupAd && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
           <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full relative shadow-2xl animate-float">
             <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none rounded-xl"></div>
             <button 
@@ -159,36 +194,14 @@ export function Advertisement() {
               <X className="h-4 w-4" />
             </button>
             
-            {/* Default popup content if none provided */}
-            {!currentPopupAd.content || currentPopupAd.content.trim() === '' ? (
-              <div className="ad-content">
-                <div className="text-center mb-4 text-primary text-4xl">📱</div>
-                <h3 className="text-xl font-bold mb-4 text-center gradient-text">Enjoying the Match?</h3>
-                <p className="text-gray-300 mb-6 text-center">
-                  Follow Us on Telegram for More Free Streams and Exclusive Content!
-                </p>
-                <button 
-                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/80 transition-colors animate-pulse-glow"
-                  onClick={() => {
-                    if (currentPopupAd.click_url) {
-                      window.open(currentPopupAd.click_url, '_blank');
-                    } else {
-                      window.open('https://t.me/streamgoal', '_blank');
-                    }
-                    closePopup();
-                    recordClick(currentPopupAd.id);
-                  }}
-                >
-                  Join Now
-                </button>
-              </div>
-            ) : (
-              <div 
-                className="ad-content"
-                dangerouslySetInnerHTML={{ __html: currentPopupAd.content }}
-                onClick={() => handleAdClick(currentPopupAd)}
-              />
-            )}
+            <div 
+              className="ad-content cursor-pointer"
+              dangerouslySetInnerHTML={{ __html: currentPopupAd.content }}
+              onClick={() => {
+                handleAdClick(currentPopupAd);
+                closePopup();
+              }}
+            />
           </div>
         </div>
       )}

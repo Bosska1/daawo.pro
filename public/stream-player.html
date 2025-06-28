@@ -16,6 +16,7 @@
       background-color: #000;
       color: white;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
     
     #playerContainer {
@@ -182,11 +183,110 @@
     .message.show {
       opacity: 1;
     }
+    
+    .play-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: rgba(56, 239, 125, 0.2);
+      border: 2px solid #38ef7d;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 15;
+      animation: pulse 2s infinite;
+    }
+    
+    .play-button:before {
+      content: '';
+      width: 0;
+      height: 0;
+      border-top: 15px solid transparent;
+      border-bottom: 15px solid transparent;
+      border-left: 25px solid #38ef7d;
+      margin-left: 5px;
+    }
+    
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 20px rgba(56, 239, 125, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(56, 239, 125, 0);
+      }
+    }
+    
+    .controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 10;
+    }
+    
+    #playerContainer:hover .controls {
+      opacity: 1;
+    }
+    
+    .control-button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+    }
+    
+    .control-button svg {
+      width: 24px;
+      height: 24px;
+    }
+    
+    .progress-bar {
+      flex: 1;
+      height: 5px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 5px;
+      overflow: hidden;
+      cursor: pointer;
+      margin: 0 10px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      width: 0%;
+    }
+    
+    .time {
+      color: white;
+      font-size: 14px;
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
   <div id="playerContainer">
     <!-- Video player will be inserted here -->
+    <div id="playButton" class="play-button"></div>
   </div>
   
   <!-- Loading indicator -->
@@ -221,6 +321,7 @@
     const retryBtn = document.getElementById('retryBtn');
     const nextSourceBtn = document.getElementById('nextSourceBtn');
     const messageEl = document.getElementById('message');
+    const playButton = document.getElementById('playButton');
     
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -245,6 +346,7 @@
     let loadingTimeout = null;
     let progressInterval = null;
     let hlsInstance = null;
+    let userInteracted = false;
     
     // Function to add timestamp to URL
     function addTimestamp(url) {
@@ -352,6 +454,9 @@
         }
       }, 2000);
       
+      // Hide play button
+      playButton.style.display = 'none';
+      
       return iframe;
     }
     
@@ -368,14 +473,32 @@
       
       // Create video element
       const video = document.createElement('video');
-      video.controls = true;
-      video.autoplay = true;
+      video.controls = false; // We'll use our own controls
+      video.autoplay = false; // We'll handle autoplay manually
       video.playsInline = true;
-      video.muted = false;
+      video.muted = true; // Start muted to help with autoplay
+      video.setAttribute('playsinline', ''); // For iOS
+      video.setAttribute('webkit-playsinline', ''); // For older iOS
       
       // Add video to container
       playerContainer.appendChild(video);
       currentPlayer = video;
+      
+      // Create custom controls
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+      controls.innerHTML = `
+        <button class="control-button play-pause">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </button>
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="time">00:00</div>
+      `;
+      playerContainer.appendChild(controls);
       
       // Handle HLS streams
       if (url.includes('.m3u8') && Hls.isSupported()) {
@@ -391,37 +514,48 @@
         hlsInstance.attachMedia(video);
         
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play()
-            .then(() => {
-              hideLoading();
-              showMessage('Stream loaded successfully');
-              // Notify parent window
-              try {
-                window.parent.postMessage('videoPlaying', '*');
-              } catch (e) {
-                console.error('Error sending message to parent:', e);
-              }
-            })
-            .catch(e => {
-              console.error('Error playing video:', e);
-              // Try to play muted (autoplay policy)
-              video.muted = true;
-              video.play()
-                .then(() => {
-                  hideLoading();
-                  showMessage('Stream loaded (tap for sound)');
-                  // Notify parent window
-                  try {
-                    window.parent.postMessage('videoPlaying', '*');
-                  } catch (e) {
-                    console.error('Error sending message to parent:', e);
-                  }
-                })
-                .catch(e => {
-                  console.error('Error playing muted video:', e);
-                  showError('Browser blocked autoplay. Please tap to play.');
-                });
-            });
+          // Show play button instead of auto-playing
+          playButton.style.display = 'flex';
+          hideLoading();
+          
+          // Handle play button click
+          playButton.onclick = () => {
+            userInteracted = true;
+            video.play()
+              .then(() => {
+                playButton.style.display = 'none';
+                showMessage('Stream started');
+                // Notify parent window
+                try {
+                  window.parent.postMessage('videoPlaying', '*');
+                } catch (e) {
+                  console.error('Error sending message to parent:', e);
+                }
+              })
+              .catch(e => {
+                console.error('Error playing video:', e);
+                showError('Browser blocked autoplay. Please tap again to play.');
+              });
+          };
+          
+          // Auto-play if user has interacted
+          if (userInteracted) {
+            video.play()
+              .then(() => {
+                playButton.style.display = 'none';
+                // Notify parent window
+                try {
+                  window.parent.postMessage('videoPlaying', '*');
+                } catch (e) {
+                  console.error('Error sending message to parent:', e);
+                }
+              })
+              .catch(e => {
+                console.error('Error playing video:', e);
+                // Show play button if autoplay fails
+                playButton.style.display = 'flex';
+              });
+          }
         });
         
         hlsInstance.on(Hls.Events.ERROR, (event, data) => {
@@ -449,7 +583,8 @@
         
         video.addEventListener('loadeddata', () => {
           hideLoading();
-          showMessage('Stream loaded successfully');
+          playButton.style.display = 'flex';
+          
           // Notify parent window
           try {
             window.parent.postMessage('videoPlaying', '*');
@@ -464,18 +599,60 @@
           setTimeout(tryNextSource, 1000);
         });
         
-        video.play()
-          .catch(e => {
-            console.error('Error playing video:', e);
-            // Try to play muted (autoplay policy)
-            video.muted = true;
-            video.play()
-              .catch(e => {
-                console.error('Error playing muted video:', e);
-                showError('Browser blocked autoplay. Please tap to play.');
-              });
-          });
+        // Handle play button click
+        playButton.onclick = () => {
+          userInteracted = true;
+          video.play()
+            .then(() => {
+              playButton.style.display = 'none';
+              showMessage('Stream started');
+            })
+            .catch(e => {
+              console.error('Error playing video:', e);
+              showError('Browser blocked autoplay. Please tap again to play.');
+            });
+        };
       }
+      
+      // Handle video controls
+      const playPauseBtn = controls.querySelector('.play-pause');
+      const progressBar = controls.querySelector('.progress-bar');
+      const progressFill = controls.querySelector('.progress-fill');
+      const timeDisplay = controls.querySelector('.time');
+      
+      playPauseBtn.addEventListener('click', () => {
+        if (video.paused) {
+          video.play();
+          playPauseBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          `;
+        } else {
+          video.pause();
+          playPauseBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+          `;
+        }
+      });
+      
+      video.addEventListener('timeupdate', () => {
+        const percent = (video.currentTime / video.duration) * 100;
+        progressFill.style.width = `${percent}%`;
+        
+        const minutes = Math.floor(video.currentTime / 60);
+        const seconds = Math.floor(video.currentTime % 60);
+        timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      });
+      
+      progressBar.addEventListener('click', (e) => {
+        const rect = progressBar.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        video.currentTime = pos * video.duration;
+      });
       
       return video;
     }
@@ -529,10 +706,12 @@
     
     // Event listeners
     retryBtn.addEventListener('click', function() {
+      userInteracted = true;
       retryCurrentSource();
     });
     
     nextSourceBtn.addEventListener('click', function() {
+      userInteracted = true;
       tryNextSource();
     });
     
@@ -555,9 +734,13 @@
     playerContainer.addEventListener('click', function(e) {
       // Don't handle clicks on buttons or controls
       if (e.target.tagName === 'BUTTON' || 
-          e.target.closest('.error-container')) {
+          e.target.closest('.error-container') ||
+          e.target.closest('.controls') ||
+          e.target === playButton) {
         return;
       }
+      
+      userInteracted = true;
       
       // If there's an error showing, try again
       if (errorContainer.style.display !== 'none') {
@@ -569,10 +752,21 @@
       if (currentPlayer && currentPlayer.tagName === 'VIDEO') {
         if (currentPlayer.paused) {
           currentPlayer.play();
+          playButton.style.display = 'none';
         } else {
           currentPlayer.pause();
+          playButton.style.display = 'flex';
         }
       }
+    });
+    
+    // Handle user interaction to enable autoplay
+    document.addEventListener('click', function() {
+      userInteracted = true;
+    });
+    
+    document.addEventListener('touchstart', function() {
+      userInteracted = true;
     });
   </script>
 </body>

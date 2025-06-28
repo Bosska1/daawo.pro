@@ -96,7 +96,7 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
     const streamUrl = tv.stream_url;
     
     // Create URL for our custom stream player
-    return `/stream-player.html?url=${encodeURIComponent(streamUrl)}&_t=${timestamp}`;
+    return `/stream-player.html?url=${encodeURIComponent(streamUrl)}&teamA=${encodeURIComponent(tv.name)}&_t=${timestamp}`;
   };
 
   return (

@@ -473,7 +473,7 @@
       
       // Create video element
       const video = document.createElement('video');
-      video.controls = false; // We'll use our own controls
+      video.controls = true; // Use native controls for better compatibility
       video.autoplay = false; // We'll handle autoplay manually
       video.playsInline = true;
       video.muted = true; // Start muted to help with autoplay
@@ -484,30 +484,20 @@
       playerContainer.appendChild(video);
       currentPlayer = video;
       
-      // Create custom controls
-      const controls = document.createElement('div');
-      controls.className = 'controls';
-      controls.innerHTML = `
-        <button class="control-button play-pause">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-        </button>
-        <div class="progress-bar">
-          <div class="progress-fill"></div>
-        </div>
-        <div class="time">00:00</div>
-      `;
-      playerContainer.appendChild(controls);
-      
       // Handle HLS streams
-      if (url.includes('.m3u8') && Hls.isSupported()) {
+      if ((url.includes('.m3u8') || url.includes('/asal/')) && Hls.isSupported()) {
         hlsInstance = new Hls({
           maxBufferLength: 30,
           maxMaxBufferLength: 60,
           startLevel: -1,
           capLevelToPlayerSize: true,
-          debug: false
+          debug: false,
+          xhrSetup: function(xhr, url) {
+            // Set custom headers if needed for specific streams
+            xhr.setRequestHeader('User-Agent', 'ExoPlayer');
+            xhr.setRequestHeader('Referer', 'https://streamgoal.app/');
+            xhr.setRequestHeader('Origin', 'https://streamgoal.app');
+          }
         });
         
         hlsInstance.loadSource(url);
@@ -614,46 +604,6 @@
         };
       }
       
-      // Handle video controls
-      const playPauseBtn = controls.querySelector('.play-pause');
-      const progressBar = controls.querySelector('.progress-bar');
-      const progressFill = controls.querySelector('.progress-fill');
-      const timeDisplay = controls.querySelector('.time');
-      
-      playPauseBtn.addEventListener('click', () => {
-        if (video.paused) {
-          video.play();
-          playPauseBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="6" y="4" width="4" height="16"></rect>
-              <rect x="14" y="4" width="4" height="16"></rect>
-            </svg>
-          `;
-        } else {
-          video.pause();
-          playPauseBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-          `;
-        }
-      });
-      
-      video.addEventListener('timeupdate', () => {
-        const percent = (video.currentTime / video.duration) * 100;
-        progressFill.style.width = `${percent}%`;
-        
-        const minutes = Math.floor(video.currentTime / 60);
-        const seconds = Math.floor(video.currentTime % 60);
-        timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      });
-      
-      progressBar.addEventListener('click', (e) => {
-        const rect = progressBar.getBoundingClientRect();
-        const pos = (e.clientX - rect.left) / rect.width;
-        video.currentTime = pos * video.duration;
-      });
-      
       return video;
     }
     
@@ -665,6 +615,13 @@
       }
       
       showLoading();
+      
+      // Special handling for the specific URL format
+      if (url.includes('yow.riix.link/asal/musalsal/')) {
+        // Create direct video player for this specific URL
+        createVideoPlayer(url);
+        return;
+      }
       
       // Determine player type based on URL
       if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('embed')) {
@@ -696,6 +653,13 @@
       
       // Add timestamp to avoid caching
       sources[0] = addTimestamp(sources[0]);
+      
+      // For the specific URL format, create alternative sources
+      if (streamUrl.includes('yow.riix.link/asal/musalsal/')) {
+        // Add direct access as alternative sources
+        sources.push(streamUrl + '?_direct=1');
+        sources.push(streamUrl.replace('musalsal', 'musalsal_backup'));
+      }
       
       // Add fallback streams
       sources = [...sources, ...fallbackStreams];

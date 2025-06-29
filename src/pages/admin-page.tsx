@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase, Match, LiveTV } from '@/lib/supabase';
+import { supabase, Match, LiveTV, Team } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AdminLogin } from '@/components/admin/admin-login';
@@ -10,8 +10,10 @@ import { AdForm } from '@/components/admin/ad-form';
 import { AdList } from '@/components/admin/ad-list';
 import { LiveTVForm } from '@/components/admin/live-tv-form';
 import { LiveTVList } from '@/components/admin/live-tv-list';
+import { TeamForm } from '@/components/admin/team-form';
+import { TeamList } from '@/components/admin/team-list';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, LogOut, Tv, BarChart3, Calendar, PanelLeftOpen } from 'lucide-react';
+import { Plus, LogOut, Tv, BarChart3, Calendar, PanelLeftOpen, Users } from 'lucide-react';
 
 interface Advertisement {
   id: string;
@@ -28,17 +30,20 @@ interface Advertisement {
 
 export function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'matches' | 'ads' | 'tv'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'ads' | 'tv' | 'teams'>('matches');
   const [matches, setMatches] = useState<Match[]>([]);
   const [ads, setAds] = useState<Advertisement[]>([]);
   const [tvChannels, setTvChannels] = useState<LiveTV[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMatchForm, setShowMatchForm] = useState(false);
   const [showAdForm, setShowAdForm] = useState(false);
   const [showTvForm, setShowTvForm] = useState(false);
+  const [showTeamForm, setShowTeamForm] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [selectedAd, setSelectedAd] = useState<Advertisement | null>(null);
   const [selectedTv, setSelectedTv] = useState<LiveTV | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [matchFilter, setMatchFilter] = useState<'all' | 'live' | 'upcoming' | 'finished'>('all');
   const { toast } = useToast();
   
@@ -54,6 +59,8 @@ export function AdminPage() {
         fetchAds();
       } else if (activeTab === 'tv') {
         fetchTvChannels();
+      } else if (activeTab === 'teams') {
+        fetchTeams();
       }
     }
   }, [isLoggedIn, activeTab, matchFilter]);
@@ -158,6 +165,30 @@ export function AdminPage() {
       toast({
         title: "Error",
         description: "Failed to load TV channels",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchTeams = async () => {
+    setLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      
+      setTeams(data as Team[]);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load teams",
         variant: "destructive",
       });
     } finally {
@@ -336,6 +367,55 @@ export function AdminPage() {
   const handleTvFormCancel = () => {
     setShowTvForm(false);
   };
+  
+  // Team handlers
+  const handleAddTeam = () => {
+    setSelectedTeam(null);
+    setShowTeamForm(true);
+  };
+  
+  const handleEditTeam = (team: Team) => {
+    setSelectedTeam(team);
+    setShowTeamForm(true);
+  };
+  
+  const handleDeleteTeam = async (team: Team) => {
+    if (!confirm(`Are you sure you want to delete the team "${team.name}"?`)) {
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', team.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Team deleted successfully",
+      });
+      
+      fetchTeams();
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete team",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleTeamFormSuccess = () => {
+    setShowTeamForm(false);
+    fetchTeams();
+  };
+  
+  const handleTeamFormCancel = () => {
+    setShowTeamForm(false);
+  };
 
   if (!isLoggedIn) {
     return <AdminLogin onLogin={handleLogin} />;
@@ -348,7 +428,7 @@ export function AdminPage() {
           StreamGoal Admin
         </h1>
         
-        <Button variant="outline" size="sm" onClick={handleLogout}>
+        <Button variant="outline" size="sm" onClick={handleLogout} className="border-gray-700 hover:bg-gray-800">
           <LogOut className="h-4 w-4 mr-2" />
           Logout
         </Button>
@@ -356,21 +436,37 @@ export function AdminPage() {
       
       <Tabs 
         defaultValue="matches" 
-        onValueChange={(value) => setActiveTab(value as 'matches' | 'ads' | 'tv')}
+        onValueChange={(value) => setActiveTab(value as 'matches' | 'ads' | 'tv' | 'teams')}
         className="w-full mb-6"
       >
-        <TabsList className="w-full grid grid-cols-3 mb-6">
-          <TabsTrigger value="matches" className="flex items-center">
+        <TabsList className="w-full grid grid-cols-4 mb-6 bg-gray-900">
+          <TabsTrigger 
+            value="matches" 
+            className="flex items-center data-[state=active]:bg-gray-800 data-[state=active]:text-primary"
+          >
             <Calendar className="h-4 w-4 mr-2" />
             Matches
           </TabsTrigger>
-          <TabsTrigger value="tv" className="flex items-center">
+          <TabsTrigger 
+            value="tv" 
+            className="flex items-center data-[state=active]:bg-gray-800 data-[state=active]:text-primary"
+          >
             <Tv className="h-4 w-4 mr-2" />
             Live TV
           </TabsTrigger>
-          <TabsTrigger value="ads" className="flex items-center">
+          <TabsTrigger 
+            value="teams" 
+            className="flex items-center data-[state=active]:bg-gray-800 data-[state=active]:text-primary"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Teams
+          </TabsTrigger>
+          <TabsTrigger 
+            value="ads" 
+            className="flex items-center data-[state=active]:bg-gray-800 data-[state=active]:text-primary"
+          >
             <PanelLeftOpen className="h-4 w-4 mr-2" />
-            Advertisements
+            Ads
           </TabsTrigger>
         </TabsList>
         
@@ -389,15 +485,18 @@ export function AdminPage() {
                   onValueChange={(value) => setMatchFilter(value as any)}
                   className="w-full max-w-md"
                 >
-                  <TabsList>
-                    <TabsTrigger value="all">All Matches</TabsTrigger>
-                    <TabsTrigger value="live">Live</TabsTrigger>
-                    <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                    <TabsTrigger value="finished">Finished</TabsTrigger>
+                  <TabsList className="bg-gray-900">
+                    <TabsTrigger value="all" className="data-[state=active]:bg-gray-800 data-[state=active]:text-primary">All Matches</TabsTrigger>
+                    <TabsTrigger value="live" className="data-[state=active]:bg-gray-800 data-[state=active]:text-primary">Live</TabsTrigger>
+                    <TabsTrigger value="upcoming" className="data-[state=active]:bg-gray-800 data-[state=active]:text-primary">Upcoming</TabsTrigger>
+                    <TabsTrigger value="finished" className="data-[state=active]:bg-gray-800 data-[state=active]:text-primary">Finished</TabsTrigger>
                   </TabsList>
                 </Tabs>
                 
-                <Button onClick={handleAddMatch}>
+                <Button 
+                  onClick={handleAddMatch}
+                  className="bg-gradient-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Match
                 </Button>
@@ -436,7 +535,10 @@ export function AdminPage() {
             <>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-medium">TV Channels</h2>
-                <Button onClick={handleAddTv}>
+                <Button 
+                  onClick={handleAddTv}
+                  className="bg-gradient-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add TV Channel
                 </Button>
@@ -464,6 +566,48 @@ export function AdminPage() {
           )}
         </TabsContent>
         
+        <TabsContent value="teams">
+          {showTeamForm ? (
+            <TeamForm 
+              team={selectedTeam || undefined} 
+              onSuccess={handleTeamFormSuccess} 
+              onCancel={handleTeamFormCancel}
+            />
+          ) : (
+            <>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-medium">Teams</h2>
+                <Button 
+                  onClick={handleAddTeam}
+                  className="bg-gradient-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Team
+                </Button>
+              </div>
+              
+              {loading ? (
+                <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-6 bg-gray-800 rounded w-1/4"></div>
+                    <div className="h-10 bg-gray-800 rounded"></div>
+                    <div className="h-10 bg-gray-800 rounded"></div>
+                    <div className="h-10 bg-gray-800 rounded"></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+                  <TeamList 
+                    teams={teams} 
+                    onEdit={handleEditTeam} 
+                    onDelete={handleDeleteTeam}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+        
         <TabsContent value="ads">
           {showAdForm ? (
             <AdForm 
@@ -475,7 +619,10 @@ export function AdminPage() {
             <>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-medium">Advertisements</h2>
-                <Button onClick={handleAddAd}>
+                <Button 
+                  onClick={handleAddAd}
+                  className="bg-gradient-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Advertisement
                 </Button>

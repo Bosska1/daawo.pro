@@ -27,6 +27,12 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
                         document.referrer.includes('android-app://');
   
   useEffect(() => {
+    // If it's iOS and not running as PWA, show the PWA prompt immediately
+    if (isIOS && !isRunningAsPWA) {
+      setShowPWAPrompt(true);
+      return; // Don't load the stream
+    }
+    
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
@@ -41,11 +47,6 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
       } else if (event.data === 'videoError') {
         setStreamError(true);
         setIsLoading(false);
-        
-        // Show PWA prompt for iOS users if there's an error and not already installed
-        if (isIOS && !isRunningAsPWA && !localStorage.getItem('pwa_prompt_dismissed')) {
-          setShowPWAPrompt(true);
-        }
       }
     };
     
@@ -115,20 +116,61 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
       streamUrl = streamUrl.replace('yow.riix.link/asal/musalsal/', 'yow.riix.link/asal/drama/');
     }
     
-    // Create URL for our custom stream player
+    // Create URL for our custom stream player with channel info
     return `/stream-player.html?url=${encodeURIComponent(streamUrl)}&teamA=${encodeURIComponent(tv.name)}&_t=${timestamp}`;
   };
-  
-  // Handle PWA prompt actions
-  const handlePWALater = () => {
-    setShowPWAPrompt(false);
-    localStorage.setItem('pwa_prompt_dismissed_temp', 'true');
-  };
-  
-  const handlePWAGotIt = () => {
-    setShowPWAPrompt(false);
-    localStorage.setItem('pwa_prompt_dismissed', 'true');
-  };
+
+  // If iOS and not running as PWA, show the PWA prompt
+  if (showPWAPrompt) {
+    return (
+      <div className="w-full h-full flex flex-col bg-black">
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-900 to-gray-800 relative">
+          <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none"></div>
+          <Button variant="outline" size="sm" onClick={onBack} className="hover:bg-gray-700 z-10">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div className="text-center flex-1 z-10">
+            <h2 className="text-lg font-semibold gradient-text">
+              {tv.name}
+            </h2>
+            <p className="text-sm text-gray-400">{tv.category} • {tv.language || tv.country || ''}</p>
+          </div>
+        </div>
+        
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-gray-900 to-black">
+          <div className="text-6xl mb-6">📱</div>
+          <h2 className="text-2xl font-bold mb-4 gradient-text">Install StreamGoal App</h2>
+          <p className="text-gray-300 mb-8 max-w-md">
+            To watch streams on iOS, please install our app on your device.
+          </p>
+          
+          <div className="bg-gray-800/50 rounded-lg p-6 mb-8 max-w-md w-full">
+            <div className="flex items-center mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-green-500 rounded-full flex items-center justify-center font-bold mr-4">1</div>
+              <div className="text-white">Tap the Share button</div>
+            </div>
+            <div className="flex items-center mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-green-500 rounded-full flex items-center justify-center font-bold mr-4">2</div>
+              <div className="text-white">Scroll and tap "Add to Home Screen"</div>
+            </div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-green-500 rounded-full flex items-center justify-center font-bold mr-4">3</div>
+              <div className="text-white">Tap "Add" to install</div>
+            </div>
+          </div>
+          
+          <Button 
+            variant="glow" 
+            onClick={onBack}
+            className="animate-pulse-glow"
+          >
+            Return to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full flex flex-col bg-black">
@@ -161,16 +203,18 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
         ref={containerRef}
         className="relative w-full flex-1 bg-black flex items-center justify-center overflow-hidden"
       >
-        <iframe
-          ref={iframeRef}
-          src={getStreamUrl()}
-          className="w-full h-full border-0"
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-          loading="eager"
-          sandbox="allow-same-origin allow-scripts allow-forms"
-          style={{ aspectRatio: '16/9', maxHeight: '100%', maxWidth: '100%' }}
-        ></iframe>
+        {!showPWAPrompt && (
+          <iframe
+            ref={iframeRef}
+            src={getStreamUrl()}
+            className="w-full h-full border-0"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            loading="eager"
+            sandbox="allow-same-origin allow-scripts allow-forms"
+            style={{ aspectRatio: '16/9', maxHeight: '100%', maxWidth: '100%' }}
+          ></iframe>
+        )}
       </div>
       
       <div className="p-4 bg-gradient-to-r from-gray-900 to-gray-800 border-t border-gray-800 relative">
@@ -187,57 +231,6 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
           </div>
         </div>
       </div>
-      
-      {/* iOS PWA Install Prompt */}
-      {showPWAPrompt && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-          <div className="bg-gradient-to-br from-blue-600 to-green-500 rounded-xl p-6 max-w-md w-full relative shadow-2xl">
-            <button 
-              className="absolute top-3 right-3 text-white bg-white/20 hover:bg-white/30 rounded-full p-1.5 transition-colors"
-              onClick={handlePWALater}
-            >
-              ✕
-            </button>
-            
-            <div className="text-center mb-4 text-white text-4xl">📱</div>
-            <h3 className="text-xl font-bold mb-4 text-center text-white">Install StreamGoal App</h3>
-            <p className="text-white/90 mb-6 text-center">
-              Install our app to watch streams without interruptions!
-            </p>
-            
-            <div className="bg-white/20 rounded-lg p-4 mb-6">
-              <div className="flex items-center mb-2">
-                <div className="w-6 h-6 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold mr-3">1</div>
-                <div className="text-white">Tap the Share button</div>
-              </div>
-              <div className="flex items-center mb-2">
-                <div className="w-6 h-6 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold mr-3">2</div>
-                <div className="text-white">Scroll and tap "Add to Home Screen"</div>
-              </div>
-              <div className="flex items-center">
-                <div className="w-6 h-6 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold mr-3">3</div>
-                <div className="text-white">Tap "Add" to install</div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-3">
-              <Button 
-                variant="outline" 
-                className="bg-white/20 text-white hover:bg-white/30 border-none"
-                onClick={handlePWALater}
-              >
-                Later
-              </Button>
-              <Button 
-                className="bg-white text-blue-600 hover:bg-white/90"
-                onClick={handlePWAGotIt}
-              >
-                Got it
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

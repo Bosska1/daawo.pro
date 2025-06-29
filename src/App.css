@@ -151,6 +151,10 @@
   animation: pulse-glow 2s infinite;
 }
 
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
+
 .gradient-text {
   background-image: linear-gradient(to right, #3b82f6, #38ef7d);
   -webkit-background-clip: text;

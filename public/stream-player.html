@@ -223,64 +223,6 @@
         box-shadow: 0 0 0 0 rgba(56, 239, 125, 0);
       }
     }
-    
-    .controls {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      z-index: 10;
-    }
-    
-    #playerContainer:hover .controls {
-      opacity: 1;
-    }
-    
-    .control-button {
-      background: none;
-      border: none;
-      color: white;
-      cursor: pointer;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 10px;
-    }
-    
-    .control-button svg {
-      width: 24px;
-      height: 24px;
-    }
-    
-    .progress-bar {
-      flex: 1;
-      height: 5px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 5px;
-      overflow: hidden;
-      cursor: pointer;
-      margin: 0 10px;
-    }
-    
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(to right, #3b82f6, #38ef7d);
-      width: 0%;
-    }
-    
-    .time {
-      color: white;
-      font-size: 14px;
-      margin-left: 10px;
-    }
   </style>
 </head>
 <body>
@@ -305,7 +247,6 @@
     <div class="error-icon">⚠️</div>
     <div class="error-message" id="errorMessage">Unable to load the stream</div>
     <button class="error-button" id="retryBtn">Try Again</button>
-    <button class="error-button" id="nextSourceBtn" style="margin-top: 10px;">Try Another Source</button>
   </div>
   
   <!-- Message display -->
@@ -319,7 +260,6 @@
     const errorContainer = document.getElementById('errorContainer');
     const errorMessage = document.getElementById('errorMessage');
     const retryBtn = document.getElementById('retryBtn');
-    const nextSourceBtn = document.getElementById('nextSourceBtn');
     const messageEl = document.getElementById('message');
     const playButton = document.getElementById('playButton');
     
@@ -333,15 +273,9 @@
     let teamAFlag = urlParams.get('teamAFlag');
     let teamBFlag = urlParams.get('teamBFlag');
     
-    // Fallback streams if the main one fails
-    const fallbackStreams = [
-      'https://www.youtube.com/embed/live_stream?channel=UCQfwfsi5VrQ8yKZ-UWmAEFg&autoplay=1',
-      'https://www.youtube.com/embed/live_stream?channel=UCNL1OpuVr6OU-FF9RWVFJFw&autoplay=1',
-      'https://www.youtube.com/embed/live_stream?channel=UCt4t-jeY85JegMlZ-E5UWtA&autoplay=1'
-    ];
+    // Fallback stream if the main one fails
+    const fallbackStream = 'https://www.youtube.com/embed/live_stream?channel=UCQfwfsi5VrQ8yKZ-UWmAEFg&autoplay=1';
     
-    let currentSourceIndex = 0;
-    let sources = [];
     let currentPlayer = null;
     let loadingTimeout = null;
     let progressInterval = null;
@@ -380,10 +314,8 @@
       if (loadingTimeout) clearTimeout(loadingTimeout);
       loadingTimeout = setTimeout(() => {
         if (loadingContainer.style.display !== 'none') {
-          showError('Stream is taking too long to load. Trying another source...');
+          showError('Stream is taking too long to load. Please try again.');
           clearInterval(progressInterval);
-          // Auto-try next source
-          setTimeout(tryNextSource, 1000);
         }
       }, 5000); // Reduced from 10s to 5s
       
@@ -553,16 +485,14 @@
             console.error('HLS error:', data);
             switch(data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
-                showError('Network error. Trying another source...');
-                setTimeout(tryNextSource, 1000);
+                showError('Network error. Please try again.');
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
-                showError('Media error. Trying to recover...');
+                showError('Media error. Please try again.');
                 hlsInstance.recoverMediaError();
                 break;
               default:
-                showError('Stream error. Trying another source...');
-                setTimeout(tryNextSource, 1000);
+                showError('Stream error. Please try again.');
                 break;
             }
           }
@@ -585,8 +515,7 @@
         
         video.addEventListener('error', () => {
           console.error('Video error:', video.error);
-          showError('Stream error. Trying another source...');
-          setTimeout(tryNextSource, 1000);
+          showError('Stream error. Please try again.');
         });
         
         // Handle play button click
@@ -631,41 +560,22 @@
       }
     }
     
-    // Function to try next source
-    function tryNextSource() {
-      currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-      showMessage(`Trying source ${currentSourceIndex + 1}/${sources.length}`);
-      loadStream(sources[currentSourceIndex]);
-    }
-    
     // Function to retry current source
     function retryCurrentSource() {
       // Add new timestamp to force refresh
-      const baseUrl = sources[currentSourceIndex].split('?')[0];
-      sources[currentSourceIndex] = addTimestamp(baseUrl);
-      loadStream(sources[currentSourceIndex]);
+      const baseUrl = streamUrl ? streamUrl.split('?')[0] : fallbackStream;
+      const refreshedUrl = addTimestamp(baseUrl);
+      loadStream(refreshedUrl);
     }
     
-    // Setup sources
+    // Start loading the stream
     if (streamUrl) {
-      // Create multiple sources from the original URL
-      sources = [streamUrl];
-      
       // Add timestamp to avoid caching
-      sources[0] = addTimestamp(sources[0]);
-      
-      // For the specific URL format, create alternative sources
-      if (streamUrl.includes('yow.riix.link/asal/musalsal/')) {
-        // Add direct access as alternative sources
-        sources.push(streamUrl + '?_direct=1');
-        sources.push(streamUrl.replace('musalsal', 'musalsal_backup'));
-      }
-      
-      // Add fallback streams
-      sources = [...sources, ...fallbackStreams];
+      streamUrl = addTimestamp(streamUrl);
+      loadStream(streamUrl);
     } else {
-      // If no stream URL provided, use fallback streams
-      sources = fallbackStreams;
+      // If no stream URL provided, use fallback stream
+      loadStream(fallbackStream);
     }
     
     // Event listeners
@@ -673,18 +583,6 @@
       userInteracted = true;
       retryCurrentSource();
     });
-    
-    nextSourceBtn.addEventListener('click', function() {
-      userInteracted = true;
-      tryNextSource();
-    });
-    
-    // Start loading the first source
-    if (sources.length > 0) {
-      loadStream(sources[currentSourceIndex]);
-    } else {
-      showError('No stream URL provided');
-    }
     
     // Listen for messages from parent window
     window.addEventListener('message', function(event) {
@@ -699,7 +597,6 @@
       // Don't handle clicks on buttons or controls
       if (e.target.tagName === 'BUTTON' || 
           e.target.closest('.error-container') ||
-          e.target.closest('.controls') ||
           e.target === playButton) {
         return;
       }

@@ -1,6 +1,6 @@
 
 // Service worker for PWA functionality
-const CACHE_NAME = 'streamgoal-v2';
+const CACHE_NAME = 'streamgoal-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -133,4 +133,18 @@ self.addEventListener('notificationclick', event => {
 // Handle app installation
 self.addEventListener('appinstalled', (event) => {
   console.log('StreamGoal was installed');
+});
+
+// Handle offline pages
+self.addEventListener('fetch', event => {
+  // Check if the request is for a page
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          // If offline, serve the offline page
+          return caches.match('/index.html');
+        })
+    );
+  }
 });

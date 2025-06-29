@@ -4,14 +4,28 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#030712" />
     <meta name="description" content="Watch Live Football — Free & Fast!" />
+    
+    <!-- iOS PWA specific tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="StreamGoal" />
     <link rel="apple-touch-icon" href="/icon-192x192.png" />
     <link rel="apple-touch-startup-image" href="/splash-screen.png" />
+    
+    <!-- iOS splash screens for different devices -->
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-2048-2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1668-2388.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1536-2048.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1125-2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1242-2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-828-1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1242-2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-750-1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-640-1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>StreamGoal - Watch Live Football</title>
     <style>
@@ -103,6 +117,16 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+      
+      /* iOS PWA specific styles */
+      @supports (padding-top: env(safe-area-inset-top)) {
+        .ios-pwa {
+          --safe-area-inset-top: env(safe-area-inset-top);
+          --safe-area-inset-right: env(safe-area-inset-right);
+          --safe-area-inset-bottom: env(safe-area-inset-bottom);
+          --safe-area-inset-left: env(safe-area-inset-left);
+        }
+      }
     </style>
     <!-- HLS.js for better HLS stream support -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
@@ -138,15 +162,29 @@
       // iOS PWA fixes
       // Prevent bounce effect
       document.addEventListener('touchmove', function(e) {
-        if (document.documentElement.classList.contains('pwa-mode')) {
+        if (window.navigator.standalone) {
           e.preventDefault();
         }
       }, { passive: false });
       
       // Check if running as PWA on iOS
       if (window.navigator.standalone) {
-        document.documentElement.classList.add('pwa-mode');
+        document.documentElement.classList.add('ios-pwa');
       }
+      
+      // Add Android PWA detection
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        document.documentElement.classList.add('android-pwa');
+      }
+      
+      // Listen for display mode changes
+      window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt) => {
+        if (evt.matches) {
+          document.documentElement.classList.add('android-pwa');
+        } else {
+          document.documentElement.classList.remove('android-pwa');
+        }
+      });
     </script>
   </body>
 </html>

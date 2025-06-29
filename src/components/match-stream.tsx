@@ -27,10 +27,9 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
                         document.referrer.includes('android-app://');
   
   useEffect(() => {
-    // If it's iOS and not running as PWA, show the PWA prompt immediately
+    // If it's iOS and not running as PWA, show the PWA prompt
     if (isIOS && !isRunningAsPWA) {
       setShowPWAPrompt(true);
-      return; // Don't load the stream
     }
     
     const handleFullscreenChange = () => {
@@ -52,19 +51,9 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     
     window.addEventListener('message', handleMessage);
     
-    // Preload the stream player
-    const preloadLink = document.createElement('link');
-    preloadLink.rel = 'preload';
-    preloadLink.href = '/stream-player.html';
-    preloadLink.as = 'document';
-    document.head.appendChild(preloadLink);
-    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       window.removeEventListener('message', handleMessage);
-      if (preloadLink.parentNode) {
-        document.head.removeChild(preloadLink);
-      }
     };
   }, [isIOS, isRunningAsPWA]);
 
@@ -109,12 +98,6 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     
     const timestamp = new Date().getTime();
     let streamUrl = match.stream_url;
-    
-    // Special handling for Asal drama streams
-    if (streamUrl.includes('yow.riix.link/asal/musalsal/') || streamUrl.includes('asal/drama')) {
-      // Make sure we're using the correct format
-      streamUrl = streamUrl.replace('yow.riix.link/asal/musalsal/', 'yow.riix.link/asal/drama/');
-    }
     
     // Create URL for our custom stream player with team info
     return `/stream-player.html?url=${encodeURIComponent(streamUrl)}&teamA=${encodeURIComponent(match.team_a?.name || '')}&teamB=${encodeURIComponent(match.team_b?.name || '')}&teamAFlag=${encodeURIComponent(match.team_a?.flag || '')}&teamBFlag=${encodeURIComponent(match.team_b?.flag || '')}&scoreA=${match.score_team_a || 0}&scoreB=${match.score_team_b || 0}&_t=${timestamp}`;
@@ -203,18 +186,15 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         ref={containerRef}
         className="relative w-full flex-1 bg-black flex items-center justify-center overflow-hidden"
       >
-        {!showPWAPrompt && (
-          <iframe
-            ref={iframeRef}
-            src={getStreamUrl()}
-            className="w-full h-full border-0"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            loading="eager"
-            sandbox="allow-same-origin allow-scripts allow-forms"
-            style={{ aspectRatio: '16/9', maxHeight: '100%', maxWidth: '100%' }}
-          ></iframe>
-        )}
+        <iframe
+          ref={iframeRef}
+          src={getStreamUrl()}
+          className="w-full h-full border-0"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          loading="eager"
+          sandbox="allow-same-origin allow-scripts allow-forms"
+        ></iframe>
       </div>
       
       <div className="p-4 bg-gradient-to-r from-gray-900 to-gray-800 border-t border-gray-800 relative">

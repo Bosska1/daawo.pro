@@ -127,6 +127,98 @@
           --safe-area-inset-left: env(safe-area-inset-left);
         }
       }
+      
+      /* iOS PWA install prompt */
+      .ios-install-prompt {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(to right, rgba(59, 130, 246, 0.95), rgba(56, 239, 125, 0.95));
+        color: white;
+        padding: 15px 20px;
+        border-radius: 12px;
+        font-size: 14px;
+        z-index: 9999;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        width: 90%;
+        max-width: 350px;
+        display: none;
+      }
+      
+      .ios-install-prompt-title {
+        font-weight: bold;
+        margin-bottom: 8px;
+        font-size: 16px;
+      }
+      
+      .ios-install-prompt-content {
+        margin-bottom: 12px;
+      }
+      
+      .ios-install-prompt-steps {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+      
+      .ios-install-prompt-step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+      
+      .ios-install-prompt-step:last-child {
+        margin-bottom: 0;
+      }
+      
+      .ios-install-prompt-step-number {
+        background: white;
+        color: #3b82f6;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 12px;
+        margin-right: 8px;
+        flex-shrink: 0;
+      }
+      
+      .ios-install-prompt-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+      
+      .ios-install-prompt-button {
+        background: white;
+        color: #3b82f6;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      
+      .ios-install-prompt-button.secondary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+      
+      .ios-install-prompt-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+      }
     </style>
     <!-- HLS.js for better HLS stream support -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
@@ -139,6 +231,34 @@
         <div class="loader-text">Loading amazing streams...</div>
       </div>
     </div>
+    
+    <!-- iOS PWA Install Prompt -->
+    <div id="iosInstallPrompt" class="ios-install-prompt">
+      <button id="iosInstallClose" class="ios-install-prompt-close">×</button>
+      <div class="ios-install-prompt-title">Install StreamGoal App</div>
+      <div class="ios-install-prompt-content">
+        Install our app to watch streams without interruptions!
+      </div>
+      <div class="ios-install-prompt-steps">
+        <div class="ios-install-prompt-step">
+          <div class="ios-install-prompt-step-number">1</div>
+          <div>Tap the Share button</div>
+        </div>
+        <div class="ios-install-prompt-step">
+          <div class="ios-install-prompt-step-number">2</div>
+          <div>Scroll and tap "Add to Home Screen"</div>
+        </div>
+        <div class="ios-install-prompt-step">
+          <div class="ios-install-prompt-step-number">3</div>
+          <div>Tap "Add" to install</div>
+        </div>
+      </div>
+      <div class="ios-install-prompt-buttons">
+        <button id="iosInstallLater" class="ios-install-prompt-button secondary">Later</button>
+        <button id="iosInstallGotIt" class="ios-install-prompt-button">Got it</button>
+      </div>
+    </div>
+    
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
@@ -183,6 +303,48 @@
           document.documentElement.classList.add('android-pwa');
         } else {
           document.documentElement.classList.remove('android-pwa');
+        }
+      });
+      
+      // iOS PWA install prompt
+      document.addEventListener('DOMContentLoaded', function() {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isRunningAsPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                              window.navigator.standalone || 
+                              document.referrer.includes('android-app://');
+        
+        const iosInstallPrompt = document.getElementById('iosInstallPrompt');
+        const iosInstallClose = document.getElementById('iosInstallClose');
+        const iosInstallLater = document.getElementById('iosInstallLater');
+        const iosInstallGotIt = document.getElementById('iosInstallGotIt');
+        
+        // Show prompt for iOS users if not already installed
+        if (isIOS && !isRunningAsPWA && !localStorage.getItem('pwa_prompt_dismissed')) {
+          setTimeout(() => {
+            iosInstallPrompt.style.display = 'block';
+          }, 3000);
+        }
+        
+        // Handle prompt interactions
+        if (iosInstallClose) {
+          iosInstallClose.addEventListener('click', function() {
+            iosInstallPrompt.style.display = 'none';
+            localStorage.setItem('pwa_prompt_dismissed_temp', 'true');
+          });
+        }
+        
+        if (iosInstallLater) {
+          iosInstallLater.addEventListener('click', function() {
+            iosInstallPrompt.style.display = 'none';
+            localStorage.setItem('pwa_prompt_dismissed_temp', 'true');
+          });
+        }
+        
+        if (iosInstallGotIt) {
+          iosInstallGotIt.addEventListener('click', function() {
+            iosInstallPrompt.style.display = 'none';
+            localStorage.setItem('pwa_prompt_dismissed', 'true');
+          });
         }
       });
     </script>

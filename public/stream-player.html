@@ -224,45 +224,118 @@
       }
     }
     
+    /* Match info overlay */
+    .match-info {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 10px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 8;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .match-info.show {
+      opacity: 1;
+    }
+    
+    .team-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 10px;
+    }
+    
+    .team-flag {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    
+    .team-name {
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+    }
+    
+    .score-container {
+      display: flex;
+      align-items: center;
+      margin: 0 15px;
+    }
+    
+    .score {
+      font-size: 18px;
+      font-weight: bold;
+      padding: 5px 10px;
+      background: rgba(56, 239, 125, 0.2);
+      border-radius: 5px;
+      min-width: 30px;
+      text-align: center;
+    }
+    
+    .score-divider {
+      margin: 0 5px;
+      color: #9ca3af;
+    }
+    
     /* iOS PWA install prompt */
     .pwa-prompt {
       position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(to right, rgba(59, 130, 246, 0.95), rgba(56, 239, 125, 0.95));
-      color: white;
-      padding: 15px 20px;
-      border-radius: 12px;
-      font-size: 14px;
-      z-index: 30;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-      width: 90%;
-      max-width: 350px;
-      display: none;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.95));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .pwa-prompt-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
     }
     
     .pwa-prompt-title {
+      font-size: 24px;
       font-weight: bold;
-      margin-bottom: 8px;
-      font-size: 16px;
+      margin-bottom: 10px;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
     
-    .pwa-prompt-content {
-      margin-bottom: 12px;
+    .pwa-prompt-message {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: #e5e7eb;
+      max-width: 300px;
     }
     
     .pwa-prompt-steps {
-      background: rgba(255, 255, 255, 0.2);
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 300px;
     }
     
     .pwa-prompt-step {
       display: flex;
       align-items: center;
-      margin-bottom: 5px;
+      margin-bottom: 10px;
+      text-align: left;
     }
     
     .pwa-prompt-step:last-child {
@@ -270,39 +343,98 @@
     }
     
     .pwa-prompt-step-number {
-      background: white;
-      color: #3b82f6;
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      font-size: 12px;
-      margin-right: 8px;
+      margin-right: 10px;
       flex-shrink: 0;
     }
     
-    .pwa-prompt-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-    
     .pwa-prompt-button {
-      background: white;
-      color: #3b82f6;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      color: white;
       border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
+      padding: 12px 24px;
+      border-radius: 8px;
       font-weight: bold;
+      font-size: 16px;
       cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 10px;
     }
     
-    .pwa-prompt-button.secondary {
-      background: rgba(255, 255, 255, 0.2);
+    .pwa-prompt-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(56, 239, 125, 0.3);
+    }
+    
+    /* Video controls */
+    .video-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
+      padding: 20px 15px 15px;
+      display: flex;
+      align-items: center;
+      z-index: 8;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .video-controls.show {
+      opacity: 1;
+    }
+    
+    .control-button {
+      background: none;
+      border: none;
       color: white;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+    }
+    
+    .control-button:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .progress-bar {
+      flex-grow: 1;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2.5px;
+      position: relative;
+      cursor: pointer;
+      margin: 0 10px;
+    }
+    
+    .progress-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      border-radius: 2.5px;
+      width: 0%;
+    }
+    
+    .time-display {
+      color: white;
+      font-size: 12px;
+      margin-left: 10px;
     }
   </style>
 </head>
@@ -310,6 +442,53 @@
   <div id="playerContainer">
     <!-- Video player will be inserted here -->
     <div id="playButton" class="play-button"></div>
+    
+    <!-- Match info overlay -->
+    <div id="matchInfo" class="match-info">
+      <div class="team-info">
+        <div id="teamAFlag" class="team-flag"></div>
+        <div id="teamAName" class="team-name"></div>
+      </div>
+      
+      <div class="score-container">
+        <div id="scoreA" class="score">0</div>
+        <div class="score-divider">-</div>
+        <div id="scoreB" class="score">0</div>
+      </div>
+      
+      <div class="team-info">
+        <div id="teamBFlag" class="team-flag"></div>
+        <div id="teamBName" class="team-name"></div>
+      </div>
+    </div>
+    
+    <!-- Video controls -->
+    <div id="videoControls" class="video-controls">
+      <button id="playPauseBtn" class="control-button">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+      </button>
+      
+      <div id="progressBar" class="progress-bar">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+      
+      <button id="muteBtn" class="control-button">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+      </button>
+      
+      <button id="fullscreenBtn" class="control-button">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+      </button>
+      
+      <div id="timeDisplay" class="time-display">0:00</div>
+    </div>
   </div>
   
   <!-- Loading indicator -->
@@ -334,10 +513,11 @@
   <div id="message" class="message"></div>
   
   <!-- iOS PWA Install Prompt -->
-  <div id="pwaPrompt" class="pwa-prompt">
+  <div id="pwaPrompt" class="pwa-prompt" style="display: none;">
+    <div class="pwa-prompt-icon">📱</div>
     <div class="pwa-prompt-title">Install StreamGoal App</div>
-    <div class="pwa-prompt-content">
-      Install our app to watch streams without interruptions!
+    <div class="pwa-prompt-message">
+      To watch streams, please install our app on your device.
     </div>
     <div class="pwa-prompt-steps">
       <div class="pwa-prompt-step">
@@ -353,10 +533,7 @@
         <div>Tap "Add" to install</div>
       </div>
     </div>
-    <div class="pwa-prompt-buttons">
-      <button id="pwaLater" class="pwa-prompt-button secondary">Later</button>
-      <button id="pwaGotIt" class="pwa-prompt-button">Got it</button>
-    </div>
+    <button id="pwaGotIt" class="pwa-prompt-button">Got it</button>
   </div>
 
   <script>
@@ -370,21 +547,42 @@
     const messageEl = document.getElementById('message');
     const playButton = document.getElementById('playButton');
     const pwaPrompt = document.getElementById('pwaPrompt');
-    const pwaLater = document.getElementById('pwaLater');
     const pwaGotIt = document.getElementById('pwaGotIt');
+    
+    // Match info elements
+    const matchInfo = document.getElementById('matchInfo');
+    const teamAFlag = document.getElementById('teamAFlag');
+    const teamAName = document.getElementById('teamAName');
+    const teamBFlag = document.getElementById('teamBFlag');
+    const teamBName = document.getElementById('teamBName');
+    const scoreA = document.getElementById('scoreA');
+    const scoreB = document.getElementById('scoreB');
+    
+    // Video control elements
+    const videoControls = document.getElementById('videoControls');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const muteBtn = document.getElementById('muteBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const timeDisplay = document.getElementById('timeDisplay');
     
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     let streamUrl = urlParams.get('url');
     let teamA = urlParams.get('teamA');
     let teamB = urlParams.get('teamB');
-    let scoreA = urlParams.get('scoreA');
-    let scoreB = urlParams.get('scoreB');
+    let scoreAValue = urlParams.get('scoreA') || '0';
+    let scoreBValue = urlParams.get('scoreB') || '0';
     let teamAFlag = urlParams.get('teamAFlag');
     let teamBFlag = urlParams.get('teamBFlag');
     
-    // Fallback stream if the main one fails
-    const fallbackStream = 'https://www.youtube.com/embed/live_stream?channel=UCQfwfsi5VrQ8yKZ-UWmAEFg&autoplay=1';
+    // Alternative stream sources
+    const alternativeStreams = [
+      'https://www.youtube.com/embed/live_stream?channel=UCQfwfsi5VrQ8yKZ-UWmAEFg&autoplay=1',
+      'https://www.youtube.com/embed/live_stream?channel=UCEgdi0XIXXZ-qJOFPf4JSKw&autoplay=1',
+      'https://www.youtube.com/embed/live_stream?channel=UCW-OEJUl-_zQWrBXzAkW9ew&autoplay=1'
+    ];
     
     let currentPlayer = null;
     let loadingTimeout = null;
@@ -392,6 +590,7 @@
     let hlsInstance = null;
     let userInteracted = false;
     let streamAttempts = 0;
+    let controlsTimeout = null;
     const MAX_ATTEMPTS = 3;
     
     // Check if running as standalone PWA
@@ -402,6 +601,12 @@
     // Check if it's iOS
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     
+    // If it's iOS and not running as PWA, show the PWA prompt and block content
+    if (isIOS && !isRunningAsPWA) {
+      pwaPrompt.style.display = 'flex';
+      loadingContainer.style.display = 'none';
+    }
+    
     // Function to add timestamp to URL
     function addTimestamp(url) {
       if (!url) return url;
@@ -409,6 +614,13 @@
       const timestamp = Date.now();
       const separator = url.includes('?') ? '&' : '?';
       return `${url}${separator}_t=${timestamp}`;
+    }
+    
+    // Function to format time
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60);
+      return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
     }
     
     // Function to show loading
@@ -461,13 +673,6 @@
       } catch (e) {
         console.error('Error sending message to parent:', e);
       }
-      
-      // Show PWA prompt for iOS users if not already installed
-      if (isIOS && !isRunningAsPWA && !localStorage.getItem('pwa_prompt_dismissed')) {
-        setTimeout(() => {
-          pwaPrompt.style.display = 'block';
-        }, 1000);
-      }
     }
     
     // Function to show message
@@ -478,6 +683,75 @@
       setTimeout(() => {
         messageEl.classList.remove('show');
       }, 2000);
+    }
+    
+    // Function to update match info
+    function updateMatchInfo() {
+      if (teamA) {
+        teamAName.textContent = teamA;
+      }
+      
+      if (teamB) {
+        teamBName.textContent = teamB;
+      }
+      
+      if (teamAFlag) {
+        teamAFlag.textContent = teamAFlag;
+      }
+      
+      if (teamBFlag) {
+        teamBFlag.textContent = teamBFlag;
+      }
+      
+      if (scoreAValue) {
+        scoreA.textContent = scoreAValue;
+      }
+      
+      if (scoreBValue) {
+        scoreB.textContent = scoreBValue;
+      }
+      
+      // Show match info if we have team names
+      if (teamA || teamB) {
+        matchInfo.classList.add('show');
+      }
+    }
+    
+    // Function to show/hide video controls
+    function showControls() {
+      videoControls.classList.add('show');
+      matchInfo.classList.add('show');
+      
+      if (controlsTimeout) {
+        clearTimeout(controlsTimeout);
+      }
+      
+      controlsTimeout = setTimeout(() => {
+        videoControls.classList.remove('show');
+        matchInfo.classList.remove('show');
+      }, 3000);
+    }
+    
+    // Function to update video controls
+    function updateVideoControls(video) {
+      if (!video) return;
+      
+      // Update play/pause button
+      playPauseBtn.innerHTML = video.paused ? 
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>' : 
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+      
+      // Update mute button
+      muteBtn.innerHTML = video.muted ? 
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>' : 
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
+      
+      // Update progress bar
+      if (!isNaN(video.duration) && isFinite(video.duration)) {
+        const progress = (video.currentTime / video.duration) * 100;
+        progressFill.style.width = `${progress}%`;
+        timeDisplay.textContent = formatTime(video.currentTime);
+      }
     }
     
     // Function to create iframe player
@@ -516,6 +790,9 @@
       // Hide play button
       playButton.style.display = 'none';
       
+      // Update match info
+      updateMatchInfo();
+      
       return iframe;
     }
     
@@ -532,7 +809,7 @@
       
       // Create video element
       const video = document.createElement('video');
-      video.controls = true; // Use native controls for better compatibility
+      video.controls = false; // We'll use our custom controls
       video.autoplay = false; // We'll handle autoplay manually
       video.playsInline = true;
       video.muted = true; // Start muted to help with autoplay
@@ -571,6 +848,8 @@
             video.onloadeddata = () => {
               hideLoading();
               playButton.style.display = 'flex';
+              updateMatchInfo();
+              showControls();
             };
             
             video.onerror = () => {
@@ -587,7 +866,12 @@
         video.onloadeddata = () => {
           hideLoading();
           playButton.style.display = 'flex';
+          updateMatchInfo();
+          showControls();
         };
+        
+        // Set up video event listeners
+        setupVideoEventListeners(video);
         
         return video;
       }
@@ -615,6 +899,7 @@
           // Show play button instead of auto-playing
           playButton.style.display = 'flex';
           hideLoading();
+          updateMatchInfo();
           
           // Handle play button click
           playButton.onclick = () => {
@@ -623,6 +908,7 @@
               .then(() => {
                 playButton.style.display = 'none';
                 showMessage('Stream started');
+                showControls();
                 // Notify parent window
                 try {
                   window.parent.postMessage('videoPlaying', '*');
@@ -641,6 +927,7 @@
             video.play()
               .then(() => {
                 playButton.style.display = 'none';
+                showControls();
                 // Notify parent window
                 try {
                   window.parent.postMessage('videoPlaying', '*');
@@ -680,6 +967,7 @@
         video.addEventListener('loadeddata', () => {
           hideLoading();
           playButton.style.display = 'flex';
+          updateMatchInfo();
           
           // Notify parent window
           try {
@@ -701,6 +989,7 @@
             .then(() => {
               playButton.style.display = 'none';
               showMessage('Stream started');
+              showControls();
             })
             .catch(e => {
               console.error('Error playing video:', e);
@@ -709,7 +998,71 @@
         };
       }
       
+      // Set up video event listeners
+      setupVideoEventListeners(video);
+      
       return video;
+    }
+    
+    // Function to set up video event listeners
+    function setupVideoEventListeners(video) {
+      // Update controls when video plays
+      video.addEventListener('play', () => {
+        updateVideoControls(video);
+        showControls();
+      });
+      
+      // Update controls when video pauses
+      video.addEventListener('pause', () => {
+        updateVideoControls(video);
+        showControls();
+      });
+      
+      // Update progress bar during playback
+      video.addEventListener('timeupdate', () => {
+        updateVideoControls(video);
+      });
+      
+      // Show controls when user moves mouse or taps screen
+      playerContainer.addEventListener('mousemove', () => {
+        showControls();
+      });
+      
+      playerContainer.addEventListener('touchstart', () => {
+        showControls();
+      });
+      
+      // Play/pause button click
+      playPauseBtn.addEventListener('click', () => {
+        if (video.paused) {
+          video.play();
+        } else {
+          video.pause();
+        }
+        updateVideoControls(video);
+      });
+      
+      // Mute button click
+      muteBtn.addEventListener('click', () => {
+        video.muted = !video.muted;
+        updateVideoControls(video);
+      });
+      
+      // Fullscreen button click
+      fullscreenBtn.addEventListener('click', () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          playerContainer.requestFullscreen();
+        }
+      });
+      
+      // Progress bar click
+      progressBar.addEventListener('click', (e) => {
+        const rect = progressBar.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        video.currentTime = pos * video.duration;
+      });
     }
     
     // Function to load stream
@@ -740,16 +1093,17 @@
     // Function to retry current source
     function retryCurrentSource() {
       // Add new timestamp to force refresh
-      const baseUrl = streamUrl ? streamUrl.split('?')[0] : fallbackStream;
+      const baseUrl = streamUrl ? streamUrl.split('?')[0] : alternativeStreams[0];
       const refreshedUrl = addTimestamp(baseUrl);
       loadStream(refreshedUrl);
     }
     
     // Function to try alternative source
     function tryAlternativeSource() {
-      // If we've tried too many times with the main URL, use fallback
+      // If we've tried too many times with the main URL, use an alternative
       if (streamAttempts >= MAX_ATTEMPTS) {
-        loadStream(fallbackStream);
+        const altIndex = streamAttempts % alternativeStreams.length;
+        loadStream(alternativeStreams[altIndex]);
         return;
       }
       
@@ -768,14 +1122,16 @@
       }
     }
     
-    // Start loading the stream
-    if (streamUrl) {
-      // Add timestamp to avoid caching
-      streamUrl = addTimestamp(streamUrl);
-      loadStream(streamUrl);
-    } else {
-      // If no stream URL provided, use fallback stream
-      loadStream(fallbackStream);
+    // Start loading the stream if not on iOS or running as PWA
+    if (!isIOS || isRunningAsPWA) {
+      if (streamUrl) {
+        // Add timestamp to avoid caching
+        streamUrl = addTimestamp(streamUrl);
+        loadStream(streamUrl);
+      } else {
+        // If no stream URL provided, use alternative stream
+        loadStream(alternativeStreams[0]);
+      }
     }
     
     // Event listeners
@@ -785,20 +1141,23 @@
     });
     
     // PWA prompt handlers
-    pwaLater.addEventListener('click', function() {
-      pwaPrompt.style.display = 'none';
-      localStorage.setItem('pwa_prompt_dismissed_temp', 'true');
-    });
-    
     pwaGotIt.addEventListener('click', function() {
-      pwaPrompt.style.display = 'none';
-      localStorage.setItem('pwa_prompt_dismissed', 'true');
+      // Store that user has seen the prompt
+      try {
+        localStorage.setItem('pwa_prompt_seen', 'true');
+      } catch (e) {
+        console.error('Error storing in localStorage:', e);
+      }
+      
+      // Redirect to homepage
+      window.parent.location.href = '/';
     });
     
     // Listen for messages from parent window
     window.addEventListener('message', function(event) {
       if (event.data === 'toggleMute' && currentPlayer && currentPlayer.tagName === 'VIDEO') {
         currentPlayer.muted = !currentPlayer.muted;
+        updateVideoControls(currentPlayer);
         showMessage(currentPlayer.muted ? 'Muted' : 'Unmuted');
       }
     });
@@ -808,6 +1167,7 @@
       // Don't handle clicks on buttons or controls
       if (e.target.tagName === 'BUTTON' || 
           e.target.closest('.error-container') ||
+          e.target.closest('.video-controls') ||
           e.target === playButton) {
         return;
       }
@@ -829,6 +1189,7 @@
           currentPlayer.pause();
           playButton.style.display = 'flex';
         }
+        updateVideoControls(currentPlayer);
       }
     });
     
@@ -840,14 +1201,6 @@
     document.addEventListener('touchstart', function() {
       userInteracted = true;
     });
-    
-    // Check if we should show the PWA prompt for iOS users
-    if (isIOS && !isRunningAsPWA && !localStorage.getItem('pwa_prompt_dismissed')) {
-      // Show after a delay
-      setTimeout(() => {
-        pwaPrompt.style.display = 'block';
-      }, 3000);
-    }
   </script>
 </body>
 </html>

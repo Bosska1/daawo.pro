@@ -14,8 +14,17 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [streamError, setStreamError] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  
+  // Check if it's iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  
+  // Check if running as standalone PWA
+  const isRunningAsPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                        window.navigator.standalone || 
+                        document.referrer.includes('android-app://');
   
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -32,6 +41,11 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
       } else if (event.data === 'videoError') {
         setStreamError(true);
         setIsLoading(false);
+        
+        // Show PWA prompt for iOS users if there's an error and not already installed
+        if (isIOS && !isRunningAsPWA && !localStorage.getItem('pwa_prompt_dismissed')) {
+          setShowPWAPrompt(true);
+        }
       }
     };
     
@@ -51,7 +65,7 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
         document.head.removeChild(preloadLink);
       }
     };
-  }, []);
+  }, [isIOS, isRunningAsPWA]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement && containerRef.current) {
@@ -93,10 +107,27 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
     }
     
     const timestamp = new Date().getTime();
-    const streamUrl = match.stream_url;
+    let streamUrl = match.stream_url;
+    
+    // Special handling for Asal drama streams
+    if (streamUrl.includes('yow.riix.link/asal/musalsal/') || streamUrl.includes('asal/drama')) {
+      // Make sure we're using the correct format
+      streamUrl = streamUrl.replace('yow.riix.link/asal/musalsal/', 'yow.riix.link/asal/drama/');
+    }
     
     // Create URL for our custom stream player with team info
     return `/stream-player.html?url=${encodeURIComponent(streamUrl)}&teamA=${encodeURIComponent(match.team_a?.name || '')}&teamB=${encodeURIComponent(match.team_b?.name || '')}&teamAFlag=${encodeURIComponent(match.team_a?.flag || '')}&teamBFlag=${encodeURIComponent(match.team_b?.flag || '')}&scoreA=${match.score_team_a || 0}&scoreB=${match.score_team_b || 0}&_t=${timestamp}`;
+  };
+  
+  // Handle PWA prompt actions
+  const handlePWALater = () => {
+    setShowPWAPrompt(false);
+    localStorage.setItem('pwa_prompt_dismissed_temp', 'true');
+  };
+  
+  const handlePWAGotIt = () => {
+    setShowPWAPrompt(false);
+    localStorage.setItem('pwa_prompt_dismissed', 'true');
   };
 
   return (
@@ -156,6 +187,57 @@ export function MatchStream({ match, onBack }: MatchStreamProps) {
           </div>
         </div>
       </div>
+      
+      {/* iOS PWA Install Prompt */}
+      {showPWAPrompt && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-gradient-to-br from-blue-600 to-green-500 rounded-xl p-6 max-w-md w-full relative shadow-2xl">
+            <button 
+              className="absolute top-3 right-3 text-white bg-white/20 hover:bg-white/30 rounded-full p-1.5 transition-colors"
+              onClick={handlePWALater}
+            >
+              ✕
+            </button>
+            
+            <div className="text-center mb-4 text-white text-4xl">📱</div>
+            <h3 className="text-xl font-bold mb-4 text-center text-white">Install StreamGoal App</h3>
+            <p className="text-white/90 mb-6 text-center">
+              Install our app to watch streams without interruptions!
+            </p>
+            
+            <div className="bg-white/20 rounded-lg p-4 mb-6">
+              <div className="flex items-center mb-2">
+                <div className="w-6 h-6 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold mr-3">1</div>
+                <div className="text-white">Tap the Share button</div>
+              </div>
+              <div className="flex items-center mb-2">
+                <div className="w-6 h-6 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold mr-3">2</div>
+                <div className="text-white">Scroll and tap "Add to Home Screen"</div>
+              </div>
+              <div className="flex items-center">
+                <div className="w-6 h-6 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold mr-3">3</div>
+                <div className="text-white">Tap "Add" to install</div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <Button 
+                variant="outline" 
+                className="bg-white/20 text-white hover:bg-white/30 border-none"
+                onClick={handlePWALater}
+              >
+                Later
+              </Button>
+              <Button 
+                className="bg-white text-blue-600 hover:bg-white/90"
+                onClick={handlePWAGotIt}
+              >
+                Got it
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

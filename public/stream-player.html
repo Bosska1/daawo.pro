@@ -5,7 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stream Player</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
   <style>
     body, html {
       margin: 0;
@@ -16,175 +15,24 @@
       background-color: #000;
       color: white;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-      -webkit-tap-highlight-color: transparent;
     }
     
     #playerContainer {
       position: relative;
       width: 100%;
       height: 100%;
-      background-color: #000;
       display: flex;
       align-items: center;
       justify-content: center;
     }
     
-    video {
+    #videoPlayer {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      background-color: #000;
     }
     
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background-color: #000;
-    }
-    
-    .error-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      color: white;
-      background-color: rgba(0, 0, 0, 0.8);
-      z-index: 10;
-    }
-    
-    .error-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      color: #f43f5e;
-    }
-    
-    .error-message {
-      font-size: 18px;
-      margin-bottom: 16px;
-      text-align: center;
-      max-width: 80%;
-    }
-    
-    .error-button {
-      background: linear-gradient(to right, #3b82f6, #38ef7d);
-      color: #000;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      margin-top: 10px;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 10px rgba(56, 239, 125, 0.3);
-    }
-    
-    .error-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(56, 239, 125, 0.4);
-    }
-    
-    .loading-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      background-color: #000;
-      z-index: 5;
-    }
-    
-    .spinner {
-      position: relative;
-      width: 80px;
-      height: 80px;
-      margin-bottom: 20px;
-    }
-    
-    .spinner-ring {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: 4px solid rgba(56, 239, 125, 0.1);
-      border-radius: 50%;
-    }
-    
-    .spinner-circle {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: 4px solid transparent;
-      border-top-color: #38ef7d;
-      border-right-color: #3b82f6;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    
-    .spinner-inner {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 24px;
-      color: #38ef7d;
-    }
-    
-    .loading-text {
-      font-size: 18px;
-      margin-top: 10px;
-      color: #fff;
-      font-weight: bold;
-      background: linear-gradient(to right, #3b82f6, #38ef7d);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    
-    .loading-progress {
-      font-size: 16px;
-      margin-top: 5px;
-      color: #9ca3af;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    .message {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(to right, rgba(59, 130, 246, 0.8), rgba(56, 239, 125, 0.8));
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      z-index: 20;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    }
-    
-    .message.show {
-      opacity: 1;
-    }
-    
-    .play-button {
+    #playButton {
       position: absolute;
       top: 50%;
       left: 50%;
@@ -198,11 +46,11 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      z-index: 15;
+      z-index: 10;
       animation: pulse 2s infinite;
     }
     
-    .play-button:before {
+    #playButton:before {
       content: '';
       width: 0;
       height: 0;
@@ -213,42 +61,242 @@
     }
     
     @keyframes pulse {
-      0% {
-        box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.4);
-      }
-      70% {
-        box-shadow: 0 0 0 20px rgba(56, 239, 125, 0);
-      }
-      100% {
-        box-shadow: 0 0 0 0 rgba(56, 239, 125, 0);
-      }
+      0% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.4); }
+      70% { box-shadow: 0 0 0 20px rgba(56, 239, 125, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0); }
     }
     
-    /* Match info overlay */
-    .match-info {
+    #loadingContainer {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      padding: 10px;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0));
+      bottom: 0;
       display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center;
+      background-color: #000;
+      z-index: 5;
+    }
+    
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 4px solid rgba(56, 239, 125, 0.1);
+      border-top-color: #38ef7d;
+      border-right-color: #3b82f6;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    #loadingText {
+      font-size: 18px;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: bold;
+    }
+    
+    #loadingProgress {
+      font-size: 16px;
+      color: #9ca3af;
+      margin-top: 5px;
+    }
+    
+    #errorContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 10;
+      display: none;
+    }
+    
+    #errorIcon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: #f43f5e;
+    }
+    
+    #errorMessage {
+      font-size: 18px;
+      margin-bottom: 16px;
+      text-align: center;
+      max-width: 80%;
+    }
+    
+    #retryBtn, #sourceBtn {
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 5px;
+      transition: all 0.2s ease;
+    }
+    
+    #retryBtn:hover, #sourceBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(56, 239, 125, 0.3);
+    }
+    
+    #controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+      padding: 20px;
+      display: flex;
       align-items: center;
       z-index: 8;
       opacity: 0;
       transition: opacity 0.3s ease;
     }
     
-    .match-info.show {
+    #controls.show {
       opacity: 1;
+    }
+    
+    .control-btn {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+    }
+    
+    #fullscreenBtn {
+      margin-left: auto;
+    }
+    
+    #pwaPrompt {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+      text-align: center;
+      display: none;
+    }
+    
+    #pwaIcon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    
+    #pwaTitle {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    #pwaMessage {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: #e5e7eb;
+      max-width: 300px;
+    }
+    
+    #pwaSteps {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 300px;
+      text-align: left;
+    }
+    
+    .pwa-step {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .pwa-step:last-child {
+      margin-bottom: 0;
+    }
+    
+    .step-number {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    
+    #pwaButton {
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    #pwaButton:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(56, 239, 125, 0.3);
+    }
+    
+    #matchInfo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 15px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 8;
     }
     
     .team-info {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 0 10px;
+      padding: 0 15px;
     }
     
     .team-flag {
@@ -257,9 +305,8 @@
     }
     
     .team-name {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: bold;
-      text-align: center;
     }
     
     .score-container {
@@ -269,7 +316,7 @@
     }
     
     .score {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: bold;
       padding: 5px 10px;
       background: rgba(56, 239, 125, 0.2);
@@ -283,168 +330,44 @@
       color: #9ca3af;
     }
     
-    /* iOS PWA install prompt */
-    .pwa-prompt {
+    #liveIndicator {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.95));
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: 20px;
-      text-align: center;
-    }
-    
-    .pwa-prompt-icon {
-      font-size: 64px;
-      margin-bottom: 20px;
-    }
-    
-    .pwa-prompt-title {
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      background: linear-gradient(to right, #3b82f6, #38ef7d);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    
-    .pwa-prompt-message {
-      font-size: 16px;
-      margin-bottom: 20px;
-      color: #e5e7eb;
-      max-width: 300px;
-    }
-    
-    .pwa-prompt-steps {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 20px;
-      width: 100%;
-      max-width: 300px;
-    }
-    
-    .pwa-prompt-step {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-      text-align: left;
-    }
-    
-    .pwa-prompt-step:last-child {
-      margin-bottom: 0;
-    }
-    
-    .pwa-prompt-step-number {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: linear-gradient(to right, #3b82f6, #38ef7d);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      margin-right: 10px;
-      flex-shrink: 0;
-    }
-    
-    .pwa-prompt-button {
-      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      top: 15px;
+      left: 15px;
+      background: rgba(239, 68, 68, 0.7);
       color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-top: 10px;
-    }
-    
-    .pwa-prompt-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(56, 239, 125, 0.3);
-    }
-    
-    /* Video controls */
-    .video-controls {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
-      padding: 20px 15px 15px;
-      display: flex;
-      align-items: center;
-      z-index: 8;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    
-    .video-controls.show {
-      opacity: 1;
-    }
-    
-    .control-button {
-      background: none;
-      border: none;
-      color: white;
-      cursor: pointer;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 10px;
-      border-radius: 50%;
-      transition: background-color 0.2s ease;
-    }
-    
-    .control-button:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-    
-    .progress-bar {
-      flex-grow: 1;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 2.5px;
-      position: relative;
-      cursor: pointer;
-      margin: 0 10px;
-    }
-    
-    .progress-fill {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      background: linear-gradient(to right, #3b82f6, #38ef7d);
-      border-radius: 2.5px;
-      width: 0%;
-    }
-    
-    .time-display {
-      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
       font-size: 12px;
-      margin-left: 10px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      z-index: 9;
+    }
+    
+    #liveIndicator:before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background-color: #ef4444;
+      border-radius: 50%;
+      margin-right: 5px;
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
   </style>
 </head>
 <body>
   <div id="playerContainer">
-    <!-- Video player will be inserted here -->
-    <div id="playButton" class="play-button"></div>
+    <video id="videoPlayer" playsinline></video>
     
-    <!-- Match info overlay -->
-    <div id="matchInfo" class="match-info">
+    <div id="playButton"></div>
+    
+    <div id="matchInfo">
       <div class="team-info">
         <div id="teamAFlag" class="team-flag"></div>
         <div id="teamAName" class="team-name"></div>
@@ -462,95 +385,87 @@
       </div>
     </div>
     
-    <!-- Video controls -->
-    <div id="videoControls" class="video-controls">
-      <button id="playPauseBtn" class="control-button">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div id="liveIndicator">LIVE</div>
+    
+    <div id="controls" class="show">
+      <button id="playPauseBtn" class="control-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="5 3 19 12 5 21 5 3"></polygon>
         </svg>
       </button>
       
-      <div id="progressBar" class="progress-bar">
-        <div id="progressFill" class="progress-fill"></div>
-      </div>
-      
-      <button id="muteBtn" class="control-button">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button id="muteBtn" class="control-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
           <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
         </svg>
       </button>
       
-      <button id="fullscreenBtn" class="control-button">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button id="fullscreenBtn" class="control-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
         </svg>
       </button>
-      
-      <div id="timeDisplay" class="time-display">0:00</div>
     </div>
   </div>
   
-  <!-- Loading indicator -->
-  <div id="loadingContainer" class="loading-container">
-    <div class="spinner">
-      <div class="spinner-ring"></div>
-      <div class="spinner-circle"></div>
-      <div class="spinner-inner">▶</div>
+  <div id="loadingContainer">
+    <div class="spinner"></div>
+    <div id="loadingText">Loading your stream...</div>
+    <div id="loadingProgress">0%</div>
+  </div>
+  
+  <div id="errorContainer">
+    <div id="errorIcon">⚠️</div>
+    <div id="errorMessage">Unable to load the stream</div>
+    <div>
+      <button id="retryBtn">Try Again</button>
+      <button id="sourceBtn">Try Another Source</button>
     </div>
-    <div class="loading-text">Loading your stream...</div>
-    <div class="loading-progress" id="loadingProgress">0%</div>
   </div>
   
-  <!-- Error display -->
-  <div id="errorContainer" class="error-container" style="display: none;">
-    <div class="error-icon">⚠️</div>
-    <div class="error-message" id="errorMessage">Unable to load the stream</div>
-    <button class="error-button" id="retryBtn">Try Again</button>
-  </div>
-  
-  <!-- Message display -->
-  <div id="message" class="message"></div>
-  
-  <!-- iOS PWA Install Prompt -->
-  <div id="pwaPrompt" class="pwa-prompt" style="display: none;">
-    <div class="pwa-prompt-icon">📱</div>
-    <div class="pwa-prompt-title">Install StreamGoal App</div>
-    <div class="pwa-prompt-message">
+  <div id="pwaPrompt">
+    <div id="pwaIcon">📱</div>
+    <div id="pwaTitle">Install StreamGoal App</div>
+    <div id="pwaMessage">
       To watch streams, please install our app on your device.
     </div>
-    <div class="pwa-prompt-steps">
-      <div class="pwa-prompt-step">
-        <div class="pwa-prompt-step-number">1</div>
+    <div id="pwaSteps">
+      <div class="pwa-step">
+        <div class="step-number">1</div>
         <div>Tap the Share button</div>
       </div>
-      <div class="pwa-prompt-step">
-        <div class="pwa-prompt-step-number">2</div>
+      <div class="pwa-step">
+        <div class="step-number">2</div>
         <div>Scroll and tap "Add to Home Screen"</div>
       </div>
-      <div class="pwa-prompt-step">
-        <div class="pwa-prompt-step-number">3</div>
+      <div class="pwa-step">
+        <div class="step-number">3</div>
         <div>Tap "Add" to install</div>
       </div>
     </div>
-    <button id="pwaGotIt" class="pwa-prompt-button">Got it</button>
+    <button id="pwaButton">Got it</button>
   </div>
 
   <script>
     // DOM elements
+    const videoPlayer = document.getElementById('videoPlayer');
     const playerContainer = document.getElementById('playerContainer');
+    const playButton = document.getElementById('playButton');
     const loadingContainer = document.getElementById('loadingContainer');
     const loadingProgress = document.getElementById('loadingProgress');
     const errorContainer = document.getElementById('errorContainer');
     const errorMessage = document.getElementById('errorMessage');
     const retryBtn = document.getElementById('retryBtn');
-    const messageEl = document.getElementById('message');
-    const playButton = document.getElementById('playButton');
+    const sourceBtn = document.getElementById('sourceBtn');
+    const controls = document.getElementById('controls');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
     const pwaPrompt = document.getElementById('pwaPrompt');
-    const pwaGotIt = document.getElementById('pwaGotIt');
+    const pwaButton = document.getElementById('pwaButton');
     
     // Match info elements
-    const matchInfo = document.getElementById('matchInfo');
     const teamAFlag = document.getElementById('teamAFlag');
     const teamAName = document.getElementById('teamAName');
     const teamBFlag = document.getElementById('teamBFlag');
@@ -558,100 +473,75 @@
     const scoreA = document.getElementById('scoreA');
     const scoreB = document.getElementById('scoreB');
     
-    // Video control elements
-    const videoControls = document.getElementById('videoControls');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-    const muteBtn = document.getElementById('muteBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const timeDisplay = document.getElementById('timeDisplay');
-    
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    let streamUrl = urlParams.get('url');
-    let teamA = urlParams.get('teamA');
-    let teamB = urlParams.get('teamB');
-    let scoreAValue = urlParams.get('scoreA') || '0';
-    let scoreBValue = urlParams.get('scoreB') || '0';
-    let teamAFlag = urlParams.get('teamAFlag');
-    let teamBFlag = urlParams.get('teamBFlag');
+    const streamUrl = urlParams.get('url');
+    const teamA = urlParams.get('teamA');
+    const teamB = urlParams.get('teamB');
+    const teamAFlagValue = urlParams.get('teamAFlag');
+    const teamBFlagValue = urlParams.get('teamBFlag');
+    const scoreAValue = urlParams.get('scoreA') || '0';
+    const scoreBValue = urlParams.get('scoreB') || '0';
     
     // Alternative stream sources
-    const alternativeStreams = [
+    const alternativeSources = [
       'https://www.youtube.com/embed/live_stream?channel=UCQfwfsi5VrQ8yKZ-UWmAEFg&autoplay=1',
       'https://www.youtube.com/embed/live_stream?channel=UCEgdi0XIXXZ-qJOFPf4JSKw&autoplay=1',
       'https://www.youtube.com/embed/live_stream?channel=UCW-OEJUl-_zQWrBXzAkW9ew&autoplay=1'
     ];
     
-    let currentPlayer = null;
-    let loadingTimeout = null;
-    let progressInterval = null;
-    let hlsInstance = null;
-    let userInteracted = false;
-    let streamAttempts = 0;
-    let controlsTimeout = null;
-    const MAX_ATTEMPTS = 3;
+    let currentSourceIndex = 0;
+    let progressInterval;
+    let loadingTimeout;
+    let controlsTimeout;
+    
+    // Check if it's iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     
     // Check if running as standalone PWA
     const isRunningAsPWA = window.matchMedia('(display-mode: standalone)').matches || 
                           window.navigator.standalone || 
                           document.referrer.includes('android-app://');
     
-    // Check if it's iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    
-    // If it's iOS and not running as PWA, show the PWA prompt and block content
+    // If it's iOS and not running as PWA, show the PWA prompt
     if (isIOS && !isRunningAsPWA) {
       pwaPrompt.style.display = 'flex';
       loadingContainer.style.display = 'none';
     }
     
-    // Function to add timestamp to URL
-    function addTimestamp(url) {
-      if (!url) return url;
-      
-      const timestamp = Date.now();
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}_t=${timestamp}`;
-    }
-    
-    // Function to format time
-    function formatTime(seconds) {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = Math.floor(seconds % 60);
-      return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
-    }
+    // Update match info
+    if (teamA) teamAName.textContent = teamA;
+    if (teamB) teamBName.textContent = teamB;
+    if (teamAFlagValue) teamAFlag.textContent = teamAFlagValue;
+    if (teamBFlagValue) teamBFlag.textContent = teamBFlagValue;
+    if (scoreAValue) scoreA.textContent = scoreAValue;
+    if (scoreBValue) scoreB.textContent = scoreBValue;
     
     // Function to show loading
     function showLoading() {
       loadingContainer.style.display = 'flex';
       errorContainer.style.display = 'none';
+      playButton.style.display = 'none';
       
       // Clear any existing intervals
       if (progressInterval) clearInterval(progressInterval);
       
-      // Animate progress - faster for better perceived performance
+      // Animate progress
       let progress = 0;
       progressInterval = setInterval(() => {
-        progress += Math.random() * 25; // Even faster progress
+        progress += Math.random() * 15;
         if (progress >= 99) {
           progress = 99;
           clearInterval(progressInterval);
         }
         loadingProgress.textContent = `${Math.floor(progress)}%`;
-      }, 50);
+      }, 100);
       
-      // Set timeout to show error if loading takes too long - shorter timeout
+      // Set timeout to show error if loading takes too long
       if (loadingTimeout) clearTimeout(loadingTimeout);
       loadingTimeout = setTimeout(() => {
-        if (loadingContainer.style.display !== 'none') {
-          showError('Stream is taking too long to load. Please try again.');
-          clearInterval(progressInterval);
-        }
-      }, 5000); // Reduced from 10s to 5s
-      
-      return progressInterval;
+        showError('Stream is taking too long to load. Please try again.');
+      }, 10000);
     }
     
     // Function to hide loading
@@ -664,8 +554,8 @@
     // Function to show error
     function showError(message) {
       loadingContainer.style.display = 'none';
-      errorMessage.textContent = message || 'Unable to load the stream';
       errorContainer.style.display = 'flex';
+      errorMessage.textContent = message || 'Unable to load the stream';
       
       // Notify parent window
       try {
@@ -675,394 +565,17 @@
       }
     }
     
-    // Function to show message
-    function showMessage(text) {
-      messageEl.textContent = text;
-      messageEl.classList.add('show');
-      
-      setTimeout(() => {
-        messageEl.classList.remove('show');
-      }, 2000);
-    }
-    
-    // Function to update match info
-    function updateMatchInfo() {
-      if (teamA) {
-        teamAName.textContent = teamA;
-      }
-      
-      if (teamB) {
-        teamBName.textContent = teamB;
-      }
-      
-      if (teamAFlag) {
-        teamAFlag.textContent = teamAFlag;
-      }
-      
-      if (teamBFlag) {
-        teamBFlag.textContent = teamBFlag;
-      }
-      
-      if (scoreAValue) {
-        scoreA.textContent = scoreAValue;
-      }
-      
-      if (scoreBValue) {
-        scoreB.textContent = scoreBValue;
-      }
-      
-      // Show match info if we have team names
-      if (teamA || teamB) {
-        matchInfo.classList.add('show');
-      }
-    }
-    
-    // Function to show/hide video controls
+    // Function to show/hide controls
     function showControls() {
-      videoControls.classList.add('show');
-      matchInfo.classList.add('show');
+      controls.classList.add('show');
       
       if (controlsTimeout) {
         clearTimeout(controlsTimeout);
       }
       
       controlsTimeout = setTimeout(() => {
-        videoControls.classList.remove('show');
-        matchInfo.classList.remove('show');
+        controls.classList.remove('show');
       }, 3000);
-    }
-    
-    // Function to update video controls
-    function updateVideoControls(video) {
-      if (!video) return;
-      
-      // Update play/pause button
-      playPauseBtn.innerHTML = video.paused ? 
-        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>' : 
-        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
-      
-      // Update mute button
-      muteBtn.innerHTML = video.muted ? 
-        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>' : 
-        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
-      
-      // Update progress bar
-      if (!isNaN(video.duration) && isFinite(video.duration)) {
-        const progress = (video.currentTime / video.duration) * 100;
-        progressFill.style.width = `${progress}%`;
-        timeDisplay.textContent = formatTime(video.currentTime);
-      }
-    }
-    
-    // Function to create iframe player
-    function createIframePlayer(url) {
-      // Remove existing player if any
-      if (currentPlayer) {
-        if (hlsInstance) {
-          hlsInstance.destroy();
-          hlsInstance = null;
-        }
-        playerContainer.removeChild(currentPlayer);
-      }
-      
-      // Create iframe
-      const iframe = document.createElement('iframe');
-      iframe.src = url;
-      iframe.allowFullscreen = true;
-      iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-      iframe.setAttribute('frameborder', '0');
-      
-      // Add iframe to container
-      playerContainer.appendChild(iframe);
-      currentPlayer = iframe;
-      
-      // Hide loading after a short delay
-      setTimeout(() => {
-        hideLoading();
-        // Notify parent window
-        try {
-          window.parent.postMessage('videoPlaying', '*');
-        } catch (e) {
-          console.error('Error sending message to parent:', e);
-        }
-      }, 2000);
-      
-      // Hide play button
-      playButton.style.display = 'none';
-      
-      // Update match info
-      updateMatchInfo();
-      
-      return iframe;
-    }
-    
-    // Function to create direct video player
-    function createVideoPlayer(url) {
-      // Remove existing player if any
-      if (currentPlayer) {
-        if (hlsInstance) {
-          hlsInstance.destroy();
-          hlsInstance = null;
-        }
-        playerContainer.removeChild(currentPlayer);
-      }
-      
-      // Create video element
-      const video = document.createElement('video');
-      video.controls = false; // We'll use our custom controls
-      video.autoplay = false; // We'll handle autoplay manually
-      video.playsInline = true;
-      video.muted = true; // Start muted to help with autoplay
-      video.setAttribute('playsinline', ''); // For iOS
-      video.setAttribute('webkit-playsinline', ''); // For older iOS
-      
-      // Add video to container
-      playerContainer.appendChild(video);
-      currentPlayer = video;
-      
-      // Special handling for Asal Drama streams
-      if (url.includes('yow.riix.link/asal/musalsal') || url.includes('asal/drama')) {
-        // Try direct playback first
-        video.src = url;
-        video.onerror = () => {
-          console.log("Direct playback failed, trying with fetch");
-          
-          // If direct playback fails, try to fetch the stream with custom headers
-          fetch(url, {
-            headers: {
-              'User-Agent': 'ExoPlayer',
-              'Referer': 'https://streamgoal.app/',
-              'Origin': 'https://streamgoal.app'
-            }
-          })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.blob();
-          })
-          .then(blob => {
-            const objectUrl = URL.createObjectURL(blob);
-            video.src = objectUrl;
-            
-            video.onloadeddata = () => {
-              hideLoading();
-              playButton.style.display = 'flex';
-              updateMatchInfo();
-              showControls();
-            };
-            
-            video.onerror = () => {
-              console.error("Video error after fetch:", video.error);
-              showError("Stream error. Please try another source.");
-            };
-          })
-          .catch(error => {
-            console.error("Fetch error:", error);
-            showError("Network error. Please try again.");
-          });
-        };
-        
-        video.onloadeddata = () => {
-          hideLoading();
-          playButton.style.display = 'flex';
-          updateMatchInfo();
-          showControls();
-        };
-        
-        // Set up video event listeners
-        setupVideoEventListeners(video);
-        
-        return video;
-      }
-      
-      // Handle HLS streams
-      if ((url.includes('.m3u8') || url.includes('/asal/')) && Hls.isSupported()) {
-        hlsInstance = new Hls({
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          startLevel: -1,
-          capLevelToPlayerSize: true,
-          debug: false,
-          xhrSetup: function(xhr, url) {
-            // Set custom headers if needed for specific streams
-            xhr.setRequestHeader('User-Agent', 'ExoPlayer');
-            xhr.setRequestHeader('Referer', 'https://streamgoal.app/');
-            xhr.setRequestHeader('Origin', 'https://streamgoal.app');
-          }
-        });
-        
-        hlsInstance.loadSource(url);
-        hlsInstance.attachMedia(video);
-        
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-          // Show play button instead of auto-playing
-          playButton.style.display = 'flex';
-          hideLoading();
-          updateMatchInfo();
-          
-          // Handle play button click
-          playButton.onclick = () => {
-            userInteracted = true;
-            video.play()
-              .then(() => {
-                playButton.style.display = 'none';
-                showMessage('Stream started');
-                showControls();
-                // Notify parent window
-                try {
-                  window.parent.postMessage('videoPlaying', '*');
-                } catch (e) {
-                  console.error('Error sending message to parent:', e);
-                }
-              })
-              .catch(e => {
-                console.error('Error playing video:', e);
-                showError('Browser blocked autoplay. Please tap again to play.');
-              });
-          };
-          
-          // Auto-play if user has interacted
-          if (userInteracted) {
-            video.play()
-              .then(() => {
-                playButton.style.display = 'none';
-                showControls();
-                // Notify parent window
-                try {
-                  window.parent.postMessage('videoPlaying', '*');
-                } catch (e) {
-                  console.error('Error sending message to parent:', e);
-                }
-              })
-              .catch(e => {
-                console.error('Error playing video:', e);
-                // Show play button if autoplay fails
-                playButton.style.display = 'flex';
-              });
-          }
-        });
-        
-        hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            console.error('HLS error:', data);
-            switch(data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                showError('Network error. Please try again.');
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                showError('Media error. Please try again.');
-                hlsInstance.recoverMediaError();
-                break;
-              default:
-                showError('Stream error. Please try again.');
-                break;
-            }
-          }
-        });
-      } else {
-        // Direct source for non-HLS streams
-        video.src = url;
-        
-        video.addEventListener('loadeddata', () => {
-          hideLoading();
-          playButton.style.display = 'flex';
-          updateMatchInfo();
-          
-          // Notify parent window
-          try {
-            window.parent.postMessage('videoPlaying', '*');
-          } catch (e) {
-            console.error('Error sending message to parent:', e);
-          }
-        });
-        
-        video.addEventListener('error', () => {
-          console.error('Video error:', video.error);
-          showError('Stream error. Please try again.');
-        });
-        
-        // Handle play button click
-        playButton.onclick = () => {
-          userInteracted = true;
-          video.play()
-            .then(() => {
-              playButton.style.display = 'none';
-              showMessage('Stream started');
-              showControls();
-            })
-            .catch(e => {
-              console.error('Error playing video:', e);
-              showError('Browser blocked autoplay. Please tap again to play.');
-            });
-        };
-      }
-      
-      // Set up video event listeners
-      setupVideoEventListeners(video);
-      
-      return video;
-    }
-    
-    // Function to set up video event listeners
-    function setupVideoEventListeners(video) {
-      // Update controls when video plays
-      video.addEventListener('play', () => {
-        updateVideoControls(video);
-        showControls();
-      });
-      
-      // Update controls when video pauses
-      video.addEventListener('pause', () => {
-        updateVideoControls(video);
-        showControls();
-      });
-      
-      // Update progress bar during playback
-      video.addEventListener('timeupdate', () => {
-        updateVideoControls(video);
-      });
-      
-      // Show controls when user moves mouse or taps screen
-      playerContainer.addEventListener('mousemove', () => {
-        showControls();
-      });
-      
-      playerContainer.addEventListener('touchstart', () => {
-        showControls();
-      });
-      
-      // Play/pause button click
-      playPauseBtn.addEventListener('click', () => {
-        if (video.paused) {
-          video.play();
-        } else {
-          video.pause();
-        }
-        updateVideoControls(video);
-      });
-      
-      // Mute button click
-      muteBtn.addEventListener('click', () => {
-        video.muted = !video.muted;
-        updateVideoControls(video);
-      });
-      
-      // Fullscreen button click
-      fullscreenBtn.addEventListener('click', () => {
-        if (document.fullscreenElement) {
-          document.exitFullscreen();
-        } else {
-          playerContainer.requestFullscreen();
-        }
-      });
-      
-      // Progress bar click
-      progressBar.addEventListener('click', (e) => {
-        const rect = progressBar.getBoundingClientRect();
-        const pos = (e.clientX - rect.left) / rect.width;
-        video.currentTime = pos * video.duration;
-      });
     }
     
     // Function to load stream
@@ -1073,133 +586,179 @@
       }
       
       showLoading();
-      streamAttempts++;
       
-      // Special handling for the specific URL format
-      if (url.includes('yow.riix.link/asal/musalsal/') || url.includes('asal/drama')) {
-        // Create direct video player for this specific URL
-        createVideoPlayer(url);
-        return;
-      }
+      // Set video source
+      videoPlayer.src = url;
+      videoPlayer.muted = true; // Start muted to help with autoplay
       
-      // Determine player type based on URL
-      if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('embed')) {
-        createIframePlayer(url);
-      } else {
-        createVideoPlayer(url);
-      }
+      // Play video
+      videoPlayer.play()
+        .then(() => {
+          hideLoading();
+          playButton.style.display = 'none';
+          showControls();
+          
+          // Notify parent window
+          try {
+            window.parent.postMessage('videoPlaying', '*');
+          } catch (e) {
+            console.error('Error sending message to parent:', e);
+          }
+        })
+        .catch(error => {
+          console.error('Error playing video:', error);
+          
+          // Show play button if autoplay fails
+          hideLoading();
+          playButton.style.display = 'flex';
+          
+          // Handle specific errors
+          if (error.name === 'NotAllowedError') {
+            // Autoplay was prevented
+            console.log('Autoplay prevented, showing play button');
+          } else {
+            // Other error, try direct iframe for YouTube URLs
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+              loadYouTubeIframe(url);
+            } else {
+              showError('Stream error. Please try again.');
+            }
+          }
+        });
     }
     
-    // Function to retry current source
-    function retryCurrentSource() {
-      // Add new timestamp to force refresh
-      const baseUrl = streamUrl ? streamUrl.split('?')[0] : alternativeStreams[0];
-      const refreshedUrl = addTimestamp(baseUrl);
-      loadStream(refreshedUrl);
+    // Function to load YouTube iframe
+    function loadYouTubeIframe(url) {
+      // Remove video player
+      videoPlayer.pause();
+      videoPlayer.removeAttribute('src');
+      videoPlayer.load();
+      videoPlayer.style.display = 'none';
+      
+      // Create iframe
+      const iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.width = '100%';
+      iframe.height = '100%';
+      iframe.frameBorder = '0';
+      iframe.allowFullscreen = true;
+      iframe.allow = 'autoplay; fullscreen';
+      
+      // Add iframe to container
+      playerContainer.appendChild(iframe);
+      
+      // Hide loading
+      hideLoading();
+      
+      // Notify parent window
+      try {
+        window.parent.postMessage('videoPlaying', '*');
+      } catch (e) {
+        console.error('Error sending message to parent:', e);
+      }
     }
     
     // Function to try alternative source
     function tryAlternativeSource() {
-      // If we've tried too many times with the main URL, use an alternative
-      if (streamAttempts >= MAX_ATTEMPTS) {
-        const altIndex = streamAttempts % alternativeStreams.length;
-        loadStream(alternativeStreams[altIndex]);
-        return;
-      }
-      
-      // Try with a different approach for the specific URL
-      if (streamUrl && streamUrl.includes('yow.riix.link/asal/musalsal/')) {
-        // Try a different version of the URL
-        const altUrl = streamUrl.replace('yow.riix.link/asal/musalsal/', 'yow.riix.link/asal/drama/');
-        loadStream(altUrl);
-      } else if (streamUrl && streamUrl.includes('asal/drama')) {
-        // Try a different version of the URL
-        const altUrl = streamUrl.replace('asal/drama', 'asal/musalsal');
-        loadStream(altUrl);
-      } else {
-        // Just retry with a new timestamp
-        retryCurrentSource();
-      }
+      currentSourceIndex = (currentSourceIndex + 1) % alternativeSources.length;
+      loadStream(alternativeSources[currentSourceIndex]);
     }
     
     // Start loading the stream if not on iOS or running as PWA
     if (!isIOS || isRunningAsPWA) {
       if (streamUrl) {
-        // Add timestamp to avoid caching
-        streamUrl = addTimestamp(streamUrl);
         loadStream(streamUrl);
       } else {
-        // If no stream URL provided, use alternative stream
-        loadStream(alternativeStreams[0]);
+        loadStream(alternativeSources[0]);
       }
     }
     
     // Event listeners
-    retryBtn.addEventListener('click', function() {
-      userInteracted = true;
-      retryCurrentSource();
+    playButton.addEventListener('click', function() {
+      videoPlayer.play()
+        .then(() => {
+          playButton.style.display = 'none';
+          showControls();
+        })
+        .catch(error => {
+          console.error('Error playing video:', error);
+          showError('Browser blocked autoplay. Please try again.');
+        });
     });
     
-    // PWA prompt handlers
-    pwaGotIt.addEventListener('click', function() {
-      // Store that user has seen the prompt
-      try {
-        localStorage.setItem('pwa_prompt_seen', 'true');
-      } catch (e) {
-        console.error('Error storing in localStorage:', e);
+    retryBtn.addEventListener('click', function() {
+      if (streamUrl) {
+        loadStream(streamUrl);
+      } else {
+        loadStream(alternativeSources[currentSourceIndex]);
       }
-      
-      // Redirect to homepage
+    });
+    
+    sourceBtn.addEventListener('click', function() {
+      tryAlternativeSource();
+    });
+    
+    pwaButton.addEventListener('click', function() {
       window.parent.location.href = '/';
     });
     
+    // Video event listeners
+    videoPlayer.addEventListener('playing', function() {
+      hideLoading();
+      playButton.style.display = 'none';
+      playPauseBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+    });
+    
+    videoPlayer.addEventListener('pause', function() {
+      playPauseBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+    });
+    
+    videoPlayer.addEventListener('error', function() {
+      showError('Stream error. Please try again.');
+    });
+    
+    // Control button event listeners
+    playPauseBtn.addEventListener('click', function() {
+      if (videoPlayer.paused) {
+        videoPlayer.play();
+      } else {
+        videoPlayer.pause();
+      }
+    });
+    
+    muteBtn.addEventListener('click', function() {
+      videoPlayer.muted = !videoPlayer.muted;
+      
+      if (videoPlayer.muted) {
+        muteBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
+      } else {
+        muteBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
+      }
+    });
+    
+    fullscreenBtn.addEventListener('click', function() {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        playerContainer.requestFullscreen();
+      }
+    });
+    
+    // Show controls when user moves mouse or taps screen
+    playerContainer.addEventListener('mousemove', showControls);
+    playerContainer.addEventListener('touchstart', showControls);
+    
     // Listen for messages from parent window
     window.addEventListener('message', function(event) {
-      if (event.data === 'toggleMute' && currentPlayer && currentPlayer.tagName === 'VIDEO') {
-        currentPlayer.muted = !currentPlayer.muted;
-        updateVideoControls(currentPlayer);
-        showMessage(currentPlayer.muted ? 'Muted' : 'Unmuted');
-      }
-    });
-    
-    // Handle clicks on the player to play/pause
-    playerContainer.addEventListener('click', function(e) {
-      // Don't handle clicks on buttons or controls
-      if (e.target.tagName === 'BUTTON' || 
-          e.target.closest('.error-container') ||
-          e.target.closest('.video-controls') ||
-          e.target === playButton) {
-        return;
-      }
-      
-      userInteracted = true;
-      
-      // If there's an error showing, try again
-      if (errorContainer.style.display !== 'none') {
-        retryCurrentSource();
-        return;
-      }
-      
-      // Toggle play/pause if it's a video
-      if (currentPlayer && currentPlayer.tagName === 'VIDEO') {
-        if (currentPlayer.paused) {
-          currentPlayer.play();
-          playButton.style.display = 'none';
+      if (event.data === 'toggleMute') {
+        videoPlayer.muted = !videoPlayer.muted;
+        
+        if (videoPlayer.muted) {
+          muteBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
         } else {
-          currentPlayer.pause();
-          playButton.style.display = 'flex';
+          muteBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
         }
-        updateVideoControls(currentPlayer);
       }
-    });
-    
-    // Handle user interaction to enable autoplay
-    document.addEventListener('click', function() {
-      userInteracted = true;
-    });
-    
-    document.addEventListener('touchstart', function() {
-      userInteracted = true;
     });
   </script>
 </body>

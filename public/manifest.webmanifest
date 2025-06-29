@@ -5,8 +5,10 @@
   "description": "Watch Live Football — Free & Fast!",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#030712",
   "theme_color": "#030712",
+  "categories": ["sports", "entertainment", "streaming"],
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -20,5 +22,39 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Home screen of StreamGoal"
+    },
+    {
+      "src": "/screenshot2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Live match streaming"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Matches",
+      "short_name": "Live",
+      "description": "View all live matches",
+      "url": "/live",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Live TV",
+      "short_name": "TV",
+      "description": "Watch live TV channels",
+      "url": "/tv",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

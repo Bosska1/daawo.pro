@@ -95,7 +95,7 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
       console.error('Error saving team:', error);
       toast({
         title: "Error",
-        description: "Failed to save team",
+        description: "Failed to save team. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -111,14 +111,14 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
   };
 
   return (
-    <div className="p-6 bg-gray-900 rounded-lg border border-gray-800">
-      <h2 className="text-xl font-bold mb-6">
+    <div className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border border-gray-700 shadow-xl">
+      <h2 className="text-xl font-bold mb-6 gradient-text">
         {team?.id ? 'Edit Team' : 'Add New Team'}
       </h2>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="team-name">Team Name</Label>
+          <Label htmlFor="team-name" className="text-gray-200">Team Name</Label>
           <Input
             id="team-name"
             type="text"
@@ -126,12 +126,12 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="bg-gray-800 border-gray-700"
+            className="bg-gray-800/80 border-gray-700 focus:border-primary/50 focus:ring-primary/20 transition-all"
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="team-country">Country</Label>
+          <Label htmlFor="team-country" className="text-gray-200">Country</Label>
           <Input
             id="team-country"
             type="text"
@@ -139,12 +139,12 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
             value={country}
             onChange={(e) => setCountry(e.target.value)}
             required
-            className="bg-gray-800 border-gray-700"
+            className="bg-gray-800/80 border-gray-700 focus:border-primary/50 focus:ring-primary/20 transition-all"
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="team-flag">Flag Emoji</Label>
+          <Label htmlFor="team-flag" className="text-gray-200">Flag Emoji</Label>
           <div className="flex items-center">
             <Input
               id="team-flag"
@@ -153,7 +153,7 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
               value={flag}
               onChange={(e) => setFlag(e.target.value)}
               required
-              className="bg-gray-800 border-gray-700"
+              className="bg-gray-800/80 border-gray-700 focus:border-primary/50 focus:ring-primary/20 transition-all"
             />
             <div className="ml-2 text-2xl">{flag}</div>
           </div>
@@ -177,14 +177,14 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="team-logo">Logo URL (optional)</Label>
+          <Label htmlFor="team-logo" className="text-gray-200">Logo URL (optional)</Label>
           <Input
             id="team-logo"
             type="url"
             placeholder="https://example.com/logo.svg"
             value={logo}
             onChange={(e) => setLogo(e.target.value)}
-            className="bg-gray-800 border-gray-700"
+            className="bg-gray-800/80 border-gray-700 focus:border-primary/50 focus:ring-primary/20 transition-all"
           />
         </div>
         
@@ -200,7 +200,7 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
           <Button 
             type="submit" 
             disabled={loading}
-            className="bg-gradient-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600"
+            className="bg-gradient-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600 transition-all shadow-lg hover:shadow-primary/20"
           >
             {loading ? "Saving..." : team?.id ? "Update Team" : "Add Team"}
           </Button>

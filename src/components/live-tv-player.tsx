@@ -191,10 +191,50 @@ export function LiveTVPlayer({ tv, onBack }: LiveTVPlayerProps) {
           src={getStreamUrl()}
           className="w-full h-full border-0"
           allow="autoplay; fullscreen; picture-in-picture"
-          allowFullscreen
+          allowFullScreen
           loading="eager"
           sandbox="allow-same-origin allow-scripts allow-forms"
         ></iframe>
+        
+        {isLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10">
+            <div className="w-16 h-16 relative">
+              <div className="absolute inset-0 rounded-full border-4 border-t-primary border-r-primary border-b-transparent border-l-transparent animate-spin"></div>
+              <div className="absolute inset-2 rounded-full border-4 border-t-blue-500 border-r-blue-500 border-b-transparent border-l-transparent animate-spin animation-delay-500"></div>
+            </div>
+            <div className="mt-4 text-lg font-semibold gradient-text">Loading stream...</div>
+            <div className="mt-2 text-sm text-gray-400">This may take a moment</div>
+          </div>
+        )}
+        
+        {streamError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
+              <span className="text-4xl">⚠️</span>
+            </div>
+            <div className="text-xl font-semibold mb-4">Stream error</div>
+            <div className="text-gray-400 mb-6 text-center max-w-md">
+              Unable to load the stream. The source may be unavailable.
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={handleRefresh}
+                className="border-gray-700 hover:bg-gray-800"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+              <Button 
+                variant="glow"
+                onClick={onBack}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Go Back
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="p-4 bg-gradient-to-r from-gray-900 to-gray-800 border-t border-gray-800 relative">

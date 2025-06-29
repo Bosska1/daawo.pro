@@ -11,6 +11,7 @@ import { Navbar } from '@/components/navbar';
 import { Toaster } from '@/components/ui/toaster';
 import { Advertisement } from '@/components/advertisement';
 import { WelcomePage } from '@/components/welcome-page';
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 import './App.css';
 
 function App() {
@@ -28,6 +29,18 @@ function App() {
     // Add iOS PWA class if running as standalone
     if (window.navigator.standalone) {
       document.documentElement.classList.add('ios-pwa');
+    }
+    
+    // Add Android PWA class if running as standalone
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      document.documentElement.classList.add('android-pwa');
+    }
+    
+    // First time visit
+    if (!localStorage.getItem('streamgoal_visited')) {
+      localStorage.setItem('streamgoal_visited', 'true');
+      localStorage.setItem('streamgoal_show_welcome', 'true');
+      setShowWelcome(true);
     }
   }, []);
   
@@ -59,6 +72,7 @@ function App() {
                 </main>
                 <Navbar />
                 <Advertisement />
+                <PWAInstallPrompt />
               </>
             }
           />

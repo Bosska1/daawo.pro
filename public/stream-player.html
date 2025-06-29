@@ -223,6 +223,87 @@
         box-shadow: 0 0 0 0 rgba(56, 239, 125, 0);
       }
     }
+    
+    /* iOS PWA install prompt */
+    .pwa-prompt {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(to right, rgba(59, 130, 246, 0.95), rgba(56, 239, 125, 0.95));
+      color: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      z-index: 30;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      width: 90%;
+      max-width: 350px;
+      display: none;
+    }
+    
+    .pwa-prompt-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    
+    .pwa-prompt-content {
+      margin-bottom: 12px;
+    }
+    
+    .pwa-prompt-steps {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .pwa-prompt-step {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    
+    .pwa-prompt-step:last-child {
+      margin-bottom: 0;
+    }
+    
+    .pwa-prompt-step-number {
+      background: white;
+      color: #3b82f6;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 12px;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    
+    .pwa-prompt-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    
+    .pwa-prompt-button {
+      background: white;
+      color: #3b82f6;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .pwa-prompt-button.secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -251,6 +332,32 @@
   
   <!-- Message display -->
   <div id="message" class="message"></div>
+  
+  <!-- iOS PWA Install Prompt -->
+  <div id="pwaPrompt" class="pwa-prompt">
+    <div class="pwa-prompt-title">Install StreamGoal App</div>
+    <div class="pwa-prompt-content">
+      Install our app to watch streams without interruptions!
+    </div>
+    <div class="pwa-prompt-steps">
+      <div class="pwa-prompt-step">
+        <div class="pwa-prompt-step-number">1</div>
+        <div>Tap the Share button</div>
+      </div>
+      <div class="pwa-prompt-step">
+        <div class="pwa-prompt-step-number">2</div>
+        <div>Scroll and tap "Add to Home Screen"</div>
+      </div>
+      <div class="pwa-prompt-step">
+        <div class="pwa-prompt-step-number">3</div>
+        <div>Tap "Add" to install</div>
+      </div>
+    </div>
+    <div class="pwa-prompt-buttons">
+      <button id="pwaLater" class="pwa-prompt-button secondary">Later</button>
+      <button id="pwaGotIt" class="pwa-prompt-button">Got it</button>
+    </div>
+  </div>
 
   <script>
     // DOM elements
@@ -262,6 +369,9 @@
     const retryBtn = document.getElementById('retryBtn');
     const messageEl = document.getElementById('message');
     const playButton = document.getElementById('playButton');
+    const pwaPrompt = document.getElementById('pwaPrompt');
+    const pwaLater = document.getElementById('pwaLater');
+    const pwaGotIt = document.getElementById('pwaGotIt');
     
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -281,6 +391,16 @@
     let progressInterval = null;
     let hlsInstance = null;
     let userInteracted = false;
+    let streamAttempts = 0;
+    const MAX_ATTEMPTS = 3;
+    
+    // Check if running as standalone PWA
+    const isRunningAsPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                          window.navigator.standalone || 
+                          document.referrer.includes('android-app://');
+    
+    // Check if it's iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     
     // Function to add timestamp to URL
     function addTimestamp(url) {
@@ -340,6 +460,13 @@
         window.parent.postMessage('videoError', '*');
       } catch (e) {
         console.error('Error sending message to parent:', e);
+      }
+      
+      // Show PWA prompt for iOS users if not already installed
+      if (isIOS && !isRunningAsPWA && !localStorage.getItem('pwa_prompt_dismissed')) {
+        setTimeout(() => {
+          pwaPrompt.style.display = 'block';
+        }, 1000);
       }
     }
     
@@ -415,6 +542,55 @@
       // Add video to container
       playerContainer.appendChild(video);
       currentPlayer = video;
+      
+      // Special handling for Asal Drama streams
+      if (url.includes('yow.riix.link/asal/musalsal') || url.includes('asal/drama')) {
+        // Try direct playback first
+        video.src = url;
+        video.onerror = () => {
+          console.log("Direct playback failed, trying with fetch");
+          
+          // If direct playback fails, try to fetch the stream with custom headers
+          fetch(url, {
+            headers: {
+              'User-Agent': 'ExoPlayer',
+              'Referer': 'https://streamgoal.app/',
+              'Origin': 'https://streamgoal.app'
+            }
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.blob();
+          })
+          .then(blob => {
+            const objectUrl = URL.createObjectURL(blob);
+            video.src = objectUrl;
+            
+            video.onloadeddata = () => {
+              hideLoading();
+              playButton.style.display = 'flex';
+            };
+            
+            video.onerror = () => {
+              console.error("Video error after fetch:", video.error);
+              showError("Stream error. Please try another source.");
+            };
+          })
+          .catch(error => {
+            console.error("Fetch error:", error);
+            showError("Network error. Please try again.");
+          });
+        };
+        
+        video.onloadeddata = () => {
+          hideLoading();
+          playButton.style.display = 'flex';
+        };
+        
+        return video;
+      }
       
       // Handle HLS streams
       if ((url.includes('.m3u8') || url.includes('/asal/')) && Hls.isSupported()) {
@@ -544,9 +720,10 @@
       }
       
       showLoading();
+      streamAttempts++;
       
       // Special handling for the specific URL format
-      if (url.includes('yow.riix.link/asal/musalsal/')) {
+      if (url.includes('yow.riix.link/asal/musalsal/') || url.includes('asal/drama')) {
         // Create direct video player for this specific URL
         createVideoPlayer(url);
         return;
@@ -568,6 +745,29 @@
       loadStream(refreshedUrl);
     }
     
+    // Function to try alternative source
+    function tryAlternativeSource() {
+      // If we've tried too many times with the main URL, use fallback
+      if (streamAttempts >= MAX_ATTEMPTS) {
+        loadStream(fallbackStream);
+        return;
+      }
+      
+      // Try with a different approach for the specific URL
+      if (streamUrl && streamUrl.includes('yow.riix.link/asal/musalsal/')) {
+        // Try a different version of the URL
+        const altUrl = streamUrl.replace('yow.riix.link/asal/musalsal/', 'yow.riix.link/asal/drama/');
+        loadStream(altUrl);
+      } else if (streamUrl && streamUrl.includes('asal/drama')) {
+        // Try a different version of the URL
+        const altUrl = streamUrl.replace('asal/drama', 'asal/musalsal');
+        loadStream(altUrl);
+      } else {
+        // Just retry with a new timestamp
+        retryCurrentSource();
+      }
+    }
+    
     // Start loading the stream
     if (streamUrl) {
       // Add timestamp to avoid caching
@@ -582,6 +782,17 @@
     retryBtn.addEventListener('click', function() {
       userInteracted = true;
       retryCurrentSource();
+    });
+    
+    // PWA prompt handlers
+    pwaLater.addEventListener('click', function() {
+      pwaPrompt.style.display = 'none';
+      localStorage.setItem('pwa_prompt_dismissed_temp', 'true');
+    });
+    
+    pwaGotIt.addEventListener('click', function() {
+      pwaPrompt.style.display = 'none';
+      localStorage.setItem('pwa_prompt_dismissed', 'true');
     });
     
     // Listen for messages from parent window
@@ -629,6 +840,14 @@
     document.addEventListener('touchstart', function() {
       userInteracted = true;
     });
+    
+    // Check if we should show the PWA prompt for iOS users
+    if (isIOS && !isRunningAsPWA && !localStorage.getItem('pwa_prompt_dismissed')) {
+      // Show after a delay
+      setTimeout(() => {
+        pwaPrompt.style.display = 'block';
+      }, 3000);
+    }
   </script>
 </body>
 </html>

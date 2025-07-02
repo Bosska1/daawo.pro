@@ -5,11 +5,7 @@ import Header from './components/header';
 import Navbar from './components/navbar';
 import HomePage from './pages/home-page';
 import LivePage from './pages/live-page';
-import TVPage from './pages/tv-page';
 import FavoritesPage from './pages/favorites-page';
-import MatchDetailsPage from './pages/match-details-page';
-import ChannelDetailsPage from './pages/channel-details-page';
-import SearchPage from './pages/search-page';
 import PWAInstallPrompt from './components/pwa-install-prompt';
 import './App.css';
 
@@ -56,11 +52,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/live" element={<LivePage />} />
-            <Route path="/tv" element={<TVPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
-            <Route path="/match/:id" element={<MatchDetailsPage />} />
-            <Route path="/channel/:id" element={<ChannelDetailsPage />} />
-            <Route path="/search" element={<SearchPage />} />
             <Route path="/upcoming" element={<Navigate to="/live" replace />} />
             <Route path="/finished" element={<Navigate to="/live" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />

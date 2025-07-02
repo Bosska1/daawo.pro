@@ -1,8 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Inline FloatingActionButton component
-const FloatingActionButton = ({
+interface FloatingActionButtonProps {
+  onRefresh: () => void;
+  onFullscreen: () => void;
+  onSourceChange: (index: number) => void;
+  currentSource: number;
+  sourceCount: number;
+}
+
+const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   onRefresh,
   onFullscreen,
   onSourceChange,
@@ -11,9 +18,7 @@ const FloatingActionButton = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
+  const toggleMenu = () => setIsOpen(!isOpen);
 
   return (
     <div className="floating-action-button-container">
@@ -54,10 +59,7 @@ const FloatingActionButton = ({
           ))}
         </div>
       )}
-      <button 
-        className="fab-main"
-        onClick={toggleMenu}
-      >
+      <button className="fab-main" onClick={toggleMenu}>
         {isOpen ? '✕' : '⚙️'}
       </button>
     </div>
@@ -79,9 +81,10 @@ interface MatchStreamProps {
     scoreA?: string;
     scoreB?: string;
   };
+  onBack?: () => void;
 }
 
-const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
+const MatchStream: React.FC<MatchStreamProps> = ({ match, onBack }) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +96,6 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Alternative sources
   const sources = [
     match.streamUrl,
     match.streamUrl.replace('asal/musalsal', 'asal/musalsal/index.m3u8'),
@@ -101,7 +103,6 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
     'https://cors-anywhere.herokuapp.com/' + match.streamUrl
   ];
 
-  // Suggested content
   const suggestions = [
     { id: '1', title: 'Sports Channel', category: 'Sports', isLive: true },
     { id: '2', title: 'News Network', category: 'News', isLive: true },
@@ -110,16 +111,13 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
   ];
 
   useEffect(() => {
-    // Check if user is on iOS
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(isIOSDevice);
     
-    // Check if app is in standalone mode (PWA installed)
     const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
                               (window.navigator as any).standalone === true;
     setIsPWA(isInStandaloneMode);
     
-    // Show PWA prompt for iOS users who haven't installed the PWA
     if (isIOSDevice && !isInStandaloneMode) {
       const hasShownPwaPrompt = localStorage.getItem('hasShownPwaPrompt');
       if (!hasShownPwaPrompt) {
@@ -128,7 +126,6 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
       }
     }
     
-    // Listen for messages from iframe
     const handleMessage = (event: MessageEvent) => {
       if (event.data === 'videoPlaying') {
         setIsLoading(false);
@@ -136,9 +133,7 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
         
         setTimeout(() => {
           setShowSuggestions(true);
-          setTimeout(() => {
-            setShowSuggestions(false);
-          }, 10000);
+          setTimeout(() => setShowSuggestions(false), 10000);
         }, 30000);
       } else if (event.data === 'videoError') {
         setIsLoading(false);
@@ -160,14 +155,11 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
     };
     
     window.addEventListener('message', handleMessage);
-    
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
+    return () => window.removeEventListener('message', handleMessage);
   }, [currentSource, retryCount, sources.length]);
   
   const handleBack = () => {
-    navigate(-1);
+    onBack ? onBack() : navigate(-1);
   };
   
   const handleRefresh = () => {
@@ -175,14 +167,10 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
   };
   
   const handleFullscreen = () => {
-    iframeRef.current?.requestFullscreen().catch(err => {
-      console.error('Error attempting to enable fullscreen:', err);
-    });
+    iframeRef.current?.requestFullscreen().catch(console.error);
   };
   
-  const handleClosePwaPrompt = () => {
-    setShowPwaPrompt(false);
-  };
+  const handleClosePwaPrompt = () => setShowPwaPrompt(false);
 
   const handleSourceChange = (index: number) => {
     setCurrentSource(index);
@@ -190,9 +178,7 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
     iframeRef.current?.contentWindow?.postMessage({ type: 'sourceChange', index }, '*');
   };
 
-  const handleSuggestionClick = (id: string) => {
-    setShowSuggestions(false);
-  };
+  const handleSuggestionClick = () => setShowSuggestions(false);
 
   if (isIOS && !isPWA) {
     return (
@@ -316,7 +302,7 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
                 <div
                   key={suggestion.id}
                   className="suggestion-item glass-card"
-                  onClick={() => handleSuggestionClick(suggestion.id)}
+                  onClick={handleSuggestionClick}
                 >
                   <h4 className="suggestion-title">{suggestion.title}</h4>
                   <p className="suggestion-category">

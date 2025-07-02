@@ -183,17 +183,188 @@ export const MatchStream: React.FC<MatchStreamProps> = ({ match, onBack }) => {
   if (isIOS && !isPWA) {
     return (
       <div className="match-stream-container">
-        {/* ... (keep existing iOS PWA prompt JSX) */}
+        <div className="stream-header">
+          <button className="back-button" onClick={handleBack}>
+            <span>←</span> Back
+          </button>
+          <div className="stream-title">
+            {match.title}
+            <div className="stream-subtitle">
+              {match.category} • {match.country}
+            </div>
+          </div>
+          <div className="stream-controls">
+            <button className="control-button" onClick={handleRefresh}>
+              <span>↻</span>
+            </button>
+            <button className="control-button" onClick={handleFullscreen}>
+              <span>⤢</span>
+            </button>
+          </div>
+        </div>
+        
+        <div className="pwa-install-prompt">
+          <div className="pwa-icon">📱</div>
+          <h2 className="pwa-title">Install StreamGoal App</h2>
+          <p className="pwa-message">
+            For the best streaming experience on iPhone, please install our web app to your home screen.
+          </p>
+          
+          <div className="pwa-steps">
+            <div className="pwa-step">
+              <div className="step-number">1</div>
+              <div className="step-text">Tap the share button at the bottom of your screen</div>
+            </div>
+            
+            <div className="pwa-step">
+              <div className="step-number">2</div>
+              <div className="step-text">Scroll down and tap "Add to Home Screen"</div>
+            </div>
+            
+            <div className="pwa-step">
+              <div className="step-number">3</div>
+              <div className="step-text">Tap "Add" in the top right corner</div>
+            </div>
+          </div>
+          
+          <button className="pwa-button" onClick={handleClosePwaPrompt}>
+            I'll Do This Later
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="match-stream-container">
-      {/* ... (keep all existing JSX structure) */}
+      <div className="stream-header">
+        <button className="back-button" onClick={handleBack}>
+          <span>←</span> Back
+        </button>
+        <div className="stream-title">
+          {match.title}
+          <div className="stream-subtitle">
+            {match.category} • {match.country}
+          </div>
+        </div>
+        <div className="stream-controls">
+          <button className="control-button" onClick={handleRefresh}>
+            <span>↻</span>
+          </button>
+          <button className="control-button" onClick={handleFullscreen}>
+            <span>⤢</span>
+          </button>
+        </div>
+      </div>
+      
+      <div className="stream-player-wrapper">
+        <iframe
+          ref={iframeRef}
+          src={`/direct-player.html?url=${encodeURIComponent(sources[currentSource])}&teamA=${encodeURIComponent(match.teamA || '')}&teamB=${encodeURIComponent(match.teamB || '')}&teamAFlag=${encodeURIComponent(match.teamAFlag || '')}&teamBFlag=${encodeURIComponent(match.teamBFlag || '')}&scoreA=${encodeURIComponent(match.scoreA || '0')}&scoreB=${encodeURIComponent(match.scoreB || '0')}`}
+          allowFullScreen
+          className="stream-player-iframe"
+        />
+        
+        {isLoading && (
+          <div className="stream-loading-overlay">
+            <div className="spinner"></div>
+            <div className="loading-text">Loading your stream...</div>
+          </div>
+        )}
+        
+        {error && (
+          <div className="stream-error-overlay">
+            <div className="error-icon">⚠️</div>
+            <div className="error-message">{error}</div>
+            <button className="retry-button" onClick={handleRefresh}>
+              Try Again
+            </button>
+          </div>
+        )}
+
+        <div className="source-selector">
+          {sources.map((_, index) => (
+            <button
+              key={index}
+              className={`source-button ${currentSource === index ? 'active' : ''}`}
+              onClick={() => handleSourceChange(index)}
+            >
+              Source {index + 1}
+            </button>
+          ))}
+        </div>
+
+        {showSuggestions && (
+          <div className="suggestions-overlay">
+            <h3 className="suggestions-title">You might also like:</h3>
+            <div className="suggestions-container">
+              {suggestions.map(suggestion => (
+                <div
+                  key={suggestion.id}
+                  className="suggestion-item glass-card"
+                  onClick={handleSuggestionClick}
+                >
+                  <h4 className="suggestion-title">{suggestion.title}</h4>
+                  <p className="suggestion-category">
+                    {suggestion.category} • {suggestion.isLive ? 'Live' : 'On Demand'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {match.isLive && (
+        <div className="live-indicator">
+          <span className="live-dot"></span> Live Now!
+        </div>
+      )}
+      
+      <div className="stream-info">
+        <p>If stream doesn't load, try another source or refresh</p>
+      </div>
+      
+      <FloatingActionButton
+        onRefresh={handleRefresh}
+        onFullscreen={handleFullscreen}
+        onSourceChange={handleSourceChange}
+        currentSource={currentSource}
+        sourceCount={sources.length}
+      />
+      
+      {showPwaPrompt && (
+        <div className="pwa-prompt-overlay">
+          <div className="pwa-prompt-content">
+            <div className="pwa-icon">📱</div>
+            <h2 className="pwa-title">Install StreamGoal App</h2>
+            <p className="pwa-message">
+              For the best streaming experience on iPhone, please install our web app to your home screen.
+            </p>
+            
+            <div className="pwa-steps">
+              <div className="pwa-step">
+                <div className="step-number">1</div>
+                <div className="step-text">Tap the share button at the bottom of your screen</div>
+              </div>
+              
+              <div className="pwa-step">
+                <div className="step-number">2</div>
+                <div className="step-text">Scroll down and tap "Add to Home Screen"</div>
+              </div>
+              
+              <div className="pwa-step">
+                <div className="step-number">3</div>
+                <div className="step-text">Tap "Add" in the top right corner</div>
+              </div>
+            </div>
+            
+            <button className="pwa-button" onClick={handleClosePwaPrompt}>
+              I'll Do This Later
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-// Named export only - no default export
-export { MatchStream };

@@ -1,86 +1,121 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { HomePage } from '@/pages/home-page';
-import { MatchesPage } from '@/pages/matches-page';
-import { LiveTVsPage } from '@/pages/live-tvs-page';
-import { FavoritesPage } from '@/pages/favorites-page';
-import { AdminPage } from '@/pages/admin-page';
-import { Header } from '@/components/header';
-import { Navbar } from '@/components/navbar';
-import { Toaster } from '@/components/ui/toaster';
-import { Advertisement } from '@/components/advertisement';
-import { WelcomePage } from '@/components/welcome-page';
-import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
+import Header from './components/header';
+import Navbar from './components/navbar';
+import HomePage from './pages/home-page';
+import LivePage from './pages/live-page';
+import TVPage from './pages/tv-page';
+import FavoritesPage from './pages/favorites-page';
+import MatchDetailsPage from './pages/match-details-page';
+import ChannelDetailsPage from './pages/channel-details-page';
+import SearchPage from './pages/search-page';
+import PWAInstallPrompt from './components/pwa-install-prompt';
 import './App.css';
 
 function App() {
-  const [showWelcome, setShowWelcome] = useState(false);
-  
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
+
   useEffect(() => {
-    // Check if we should show the welcome page
-    const shouldShowWelcome = localStorage.getItem('streamgoal_show_welcome') === 'true';
-    if (shouldShowWelcome) {
-      setShowWelcome(true);
-      // Remove the flag so it doesn't show again
-      localStorage.removeItem('streamgoal_show_welcome');
+    // Check if this is the first visit
+    const hasVisitedBefore = localStorage.getItem('hasVisitedBefore');
+    if (!hasVisitedBefore) {
+      setIsFirstVisit(true);
+      localStorage.setItem('hasVisitedBefore', 'true');
     }
     
-    // Add iOS PWA class if running as standalone
-    if (window.navigator.standalone) {
-      document.documentElement.classList.add('ios-pwa');
-    }
+    // Check if user is on iOS and not in PWA mode
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
+                              (window.navigator as any).standalone === true;
     
-    // Add Android PWA class if running as standalone
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      document.documentElement.classList.add('android-pwa');
-    }
-    
-    // First time visit
-    if (!localStorage.getItem('streamgoal_visited')) {
-      localStorage.setItem('streamgoal_visited', 'true');
-      localStorage.setItem('streamgoal_show_welcome', 'true');
-      setShowWelcome(true);
+    if (isIOS && !isInStandaloneMode) {
+      // Check if we've shown the prompt before
+      const hasShownPwaPrompt = localStorage.getItem('hasShownPwaPrompt');
+      if (!hasShownPwaPrompt) {
+        // Show the prompt after a delay
+        setTimeout(() => {
+          setShowPwaPrompt(true);
+        }, 3000);
+      }
     }
   }, []);
   
-  const handleCloseWelcome = () => {
-    setShowWelcome(false);
+  const handleClosePwaPrompt = () => {
+    setShowPwaPrompt(false);
+    localStorage.setItem('hasShownPwaPrompt', 'true');
   };
-  
+
   return (
     <Router>
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col">
-        <Routes>
-          <Route path="/admin" element={<AdminPage />} />
-          <Route
-            path="*"
-            element={
-              <>
-                <Header />
-                <main className="flex-1 pt-2 pb-16">
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/matches" element={<MatchesPage />} />
-                    <Route path="/live" element={<MatchesPage />} />
-                    <Route path="/tv" element={<LiveTVsPage />} />
-                    <Route path="/favorites" element={<FavoritesPage />} />
-                    {/* Redirect old routes to the matches page */}
-                    <Route path="/upcoming" element={<Navigate to="/matches" replace />} />
-                    <Route path="/finished" element={<Navigate to="/matches" replace />} />
-                  </Routes>
-                </main>
-                <Navbar />
-                <Advertisement />
-                <PWAInstallPrompt />
-              </>
-            }
-          />
-        </Routes>
-        <Toaster />
+      <div className="app-container">
+        <Header />
         
-        {/* Welcome page for first-time visitors */}
-        {showWelcome && <WelcomePage onClose={handleCloseWelcome} />}
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/live" element={<LivePage />} />
+            <Route path="/tv" element={<TVPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/match/:id" element={<MatchDetailsPage />} />
+            <Route path="/channel/:id" element={<ChannelDetailsPage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/upcoming" element={<Navigate to="/live" replace />} />
+            <Route path="/finished" element={<Navigate to="/live" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+        
+        <Navbar />
+        
+        {showPwaPrompt && (
+          <PWAInstallPrompt onClose={handleClosePwaPrompt} />
+        )}
+        
+        {isFirstVisit && (
+          <div className="welcome-overlay">
+            <div className="welcome-content glass-card">
+              <h1 className="welcome-title gradient-text">Welcome to StreamGoal!</h1>
+              <p className="welcome-message">
+                Your ultimate destination for live sports, TV channels, and entertainment.
+              </p>
+              
+              <div className="welcome-features">
+                <div className="feature-item">
+                  <div className="feature-icon">🏆</div>
+                  <div className="feature-text">
+                    <h3>Live Sports</h3>
+                    <p>Watch your favorite teams compete in real-time</p>
+                  </div>
+                </div>
+                
+                <div className="feature-item">
+                  <div className="feature-icon">📺</div>
+                  <div className="feature-text">
+                    <h3>TV Channels</h3>
+                    <p>Stream popular TV channels from around the world</p>
+                  </div>
+                </div>
+                
+                <div className="feature-item">
+                  <div className="feature-icon">❤️</div>
+                  <div className="feature-text">
+                    <h3>Favorites</h3>
+                    <p>Save your favorite content for quick access</p>
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                className="welcome-button"
+                onClick={() => setIsFirstVisit(false)}
+              >
+                Get Started
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </Router>
   );

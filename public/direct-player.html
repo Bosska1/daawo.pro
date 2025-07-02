@@ -1,0 +1,461 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direct Stream Player</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    }
+    
+    #playerContainer {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    #loadingOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+    
+    .spinner {
+      width: 60px;
+      height: 60px;
+      position: relative;
+    }
+    
+    .spinner:before, .spinner:after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 4px solid transparent;
+    }
+    
+    .spinner:before {
+      border-top-color: #3b82f6;
+      border-right-color: #38ef7d;
+      animation: spin 1s linear infinite;
+    }
+    
+    .spinner:after {
+      border-bottom-color: #3b82f6;
+      border-left-color: #38ef7d;
+      animation: spin 1.5s linear reverse infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    #loadingText {
+      margin-top: 20px;
+      font-size: 18px;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: bold;
+    }
+    
+    #loadingProgress {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #9ca3af;
+    }
+    
+    #errorOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    
+    #errorIcon {
+      width: 60px;
+      height: 60px;
+      background-color: #f43f5e;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    
+    #errorIcon svg {
+      width: 30px;
+      height: 30px;
+      fill: white;
+    }
+    
+    #errorMessage {
+      font-size: 18px;
+      margin-bottom: 20px;
+      text-align: center;
+      max-width: 80%;
+    }
+    
+    .actionButton {
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 5px;
+      transition: all 0.2s ease;
+    }
+    
+    .actionButton:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(56, 239, 125, 0.3);
+    }
+    
+    #pwaPrompt {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    #pwaIcon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 40px;
+    }
+    
+    #pwaTitle {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    #pwaMessage {
+      font-size: 16px;
+      margin-bottom: 20px;
+      max-width: 80%;
+      line-height: 1.5;
+    }
+    
+    .pwaStep {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      text-align: left;
+      width: 100%;
+      max-width: 300px;
+    }
+    
+    .stepNumber {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      font-weight: bold;
+    }
+    
+    .stepText {
+      flex: 1;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="playerContainer">
+    <div id="loadingOverlay">
+      <div class="spinner"></div>
+      <div id="loadingText">Loading your stream...</div>
+      <div id="loadingProgress">0%</div>
+    </div>
+    
+    <div id="errorOverlay">
+      <div id="errorIcon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+      </div>
+      <div id="errorMessage">Stream error. Please try again.</div>
+      <div>
+        <button id="retryButton" class="actionButton">Try Again</button>
+        <button id="refreshButton" class="actionButton">Refresh Page</button>
+      </div>
+    </div>
+    
+    <div id="pwaPrompt">
+      <div id="pwaIcon">📱</div>
+      <div id="pwaTitle">Install StreamGoal App</div>
+      <div id="pwaMessage">For the best streaming experience on iPhone, please install our web app to your home screen.</div>
+      
+      <div class="pwaStep">
+        <div class="stepNumber">1</div>
+        <div class="stepText">Tap the share button at the bottom of your screen</div>
+      </div>
+      
+      <div class="pwaStep">
+        <div class="stepNumber">2</div>
+        <div class="stepText">Scroll down and tap "Add to Home Screen"</div>
+      </div>
+      
+      <div class="pwaStep">
+        <div class="stepNumber">3</div>
+        <div class="stepText">Tap "Add" in the top right corner</div>
+      </div>
+      
+      <button id="pwaCloseButton" class="actionButton">I'll Do This Later</button>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const playerContainer = document.getElementById('playerContainer');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingProgress = document.getElementById('loadingProgress');
+    const errorOverlay = document.getElementById('errorOverlay');
+    const errorMessage = document.getElementById('errorMessage');
+    const retryButton = document.getElementById('retryButton');
+    const refreshButton = document.getElementById('refreshButton');
+    const pwaPrompt = document.getElementById('pwaPrompt');
+    const pwaCloseButton = document.getElementById('pwaCloseButton');
+    
+    // Parse URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const streamUrl = urlParams.get('url');
+    
+    let progressInterval;
+    let loadingTimeout;
+    let iframe;
+    
+    // Function to show loading
+    function showLoading() {
+      loadingOverlay.style.display = 'flex';
+      errorOverlay.style.display = 'none';
+      
+      // Clear any existing intervals
+      if (progressInterval) clearInterval(progressInterval);
+      
+      // Animate progress
+      let progress = 0;
+      progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress >= 99) {
+          progress = 99;
+          clearInterval(progressInterval);
+        }
+        loadingProgress.textContent = `${Math.floor(progress)}%`;
+      }, 100);
+      
+      // Set timeout to show error if loading takes too long
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+      loadingTimeout = setTimeout(() => {
+        showError('Stream is taking too long to load. Please try again.');
+      }, 15000);
+    }
+    
+    // Function to hide loading
+    function hideLoading() {
+      loadingOverlay.style.display = 'none';
+      if (progressInterval) clearInterval(progressInterval);
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+    }
+    
+    // Function to show error
+    function showError(message) {
+      hideLoading();
+      errorOverlay.style.display = 'flex';
+      errorMessage.textContent = message || 'Stream error. Please try again.';
+      
+      // Check if user is on iOS and show PWA prompt
+      if (isIOS() && !isInStandaloneMode()) {
+        setTimeout(() => {
+          pwaPrompt.style.display = 'flex';
+        }, 2000);
+      }
+      
+      // Notify parent window
+      try {
+        window.parent.postMessage('videoError', '*');
+      } catch (e) {
+        console.error('Error sending message to parent:', e);
+      }
+    }
+    
+    // Function to check if user is on iOS
+    function isIOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+    
+    // Function to check if app is in standalone mode (PWA installed)
+    function isInStandaloneMode() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    }
+    
+    // Function to load stream
+    function loadStream(url) {
+      if (!url) {
+        showError('No stream URL provided');
+        return;
+      }
+      
+      showLoading();
+      
+      // Create iframe
+      iframe = document.createElement('iframe');
+      iframe.allowFullscreen = true;
+      
+      // Special handling for yow.riix.link URLs
+      if (url.includes('yow.riix.link/asal/musalsal')) {
+        // Direct embed approach
+        iframe.src = url;
+        
+        // Add iframe to container
+        playerContainer.appendChild(iframe);
+        
+        // Hide loading after a short delay
+        setTimeout(() => {
+          hideLoading();
+          
+          // Notify parent window
+          try {
+            window.parent.postMessage('videoPlaying', '*');
+          } catch (e) {
+            console.error('Error sending message to parent:', e);
+          }
+        }, 2000);
+      } else {
+        // Standard approach for other URLs
+        iframe.src = url;
+        
+        // Add iframe to container
+        playerContainer.appendChild(iframe);
+        
+        // Hide loading after a short delay
+        setTimeout(() => {
+          hideLoading();
+          
+          // Notify parent window
+          try {
+            window.parent.postMessage('videoPlaying', '*');
+          } catch (e) {
+            console.error('Error sending message to parent:', e);
+          }
+        }, 2000);
+      }
+      
+      // Add load event listener
+      iframe.addEventListener('load', function() {
+        hideLoading();
+        
+        // Notify parent window
+        try {
+          window.parent.postMessage('videoPlaying', '*');
+        } catch (e) {
+          console.error('Error sending message to parent:', e);
+        }
+      });
+      
+      // Add error event listener
+      iframe.addEventListener('error', function() {
+        showError('Stream error. Please try again.');
+      });
+    }
+    
+    // Start loading the stream
+    if (streamUrl) {
+      loadStream(streamUrl);
+    } else {
+      showError('No stream URL provided');
+    }
+    
+    // Event listeners
+    retryButton.addEventListener('click', function() {
+      // Remove existing iframe
+      if (iframe && iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
+      }
+      
+      if (streamUrl) {
+        loadStream(streamUrl);
+      } else {
+        showError('No stream URL provided');
+      }
+    });
+    
+    refreshButton.addEventListener('click', function() {
+      window.location.reload();
+    });
+    
+    pwaCloseButton.addEventListener('click', function() {
+      pwaPrompt.style.display = 'none';
+    });
+    
+    // Listen for messages from parent window
+    window.addEventListener('message', function(event) {
+      if (event.data === 'retry') {
+        retryButton.click();
+      }
+    });
+  </script>
+</body>
+</html>

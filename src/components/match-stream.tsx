@@ -27,6 +27,24 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
+  const [currentSource, setCurrentSource] = useState(0);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Alternative sources
+  const sources = [
+    match.streamUrl,
+    match.streamUrl + '?source=2',
+    match.streamUrl + '?source=3',
+    match.streamUrl + '?source=4'
+  ];
+
+  // Suggested content
+  const suggestions = [
+    { id: '1', title: 'Sports Channel', category: 'Sports', isLive: true },
+    { id: '2', title: 'News Network', category: 'News', isLive: true },
+    { id: '3', title: 'Movie Channel', category: 'Movies', isLive: true },
+    { id: '4', title: 'Entertainment TV', category: 'Entertainment', isLive: true }
+  ];
 
   useEffect(() => {
     // Check if user is on iOS
@@ -53,6 +71,15 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
       if (event.data === 'videoPlaying') {
         setIsLoading(false);
         setError(null);
+        
+        // Show suggestions after a delay
+        setTimeout(() => {
+          setShowSuggestions(true);
+          // Hide after 10 seconds
+          setTimeout(() => {
+            setShowSuggestions(false);
+          }, 10000);
+        }, 30000);
       } else if (event.data === 'videoError') {
         setIsLoading(false);
         setError('Stream error. Please try again.');
@@ -61,6 +88,9 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
         if (isIOSDevice && !isInStandaloneMode) {
           setShowPwaPrompt(true);
         }
+      } else if (event.data && typeof event.data === 'object' && event.data.type === 'sourceChange') {
+        // Handle source change from iframe
+        setCurrentSource(event.data.index);
       }
     };
     
@@ -92,6 +122,20 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
   
   const handleClosePwaPrompt = () => {
     setShowPwaPrompt(false);
+  };
+
+  const handleSourceChange = (index: number) => {
+    setCurrentSource(index);
+    if (iframeRef.current) {
+      // Send message to iframe to change source
+      iframeRef.current.contentWindow?.postMessage({ type: 'sourceChange', index }, '*');
+    }
+  };
+
+  const handleSuggestionClick = (id: string) => {
+    // In a real app, this would navigate to the suggested content
+    // For now, just hide the suggestions
+    setShowSuggestions(false);
   };
 
   // For iOS devices that haven't installed the PWA, show a prompt
@@ -175,7 +219,7 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
       <div className="stream-player-wrapper">
         <iframe
           ref={iframeRef}
-          src={`/direct-player.html?url=${encodeURIComponent(match.streamUrl)}&teamA=${encodeURIComponent(match.teamA || '')}&teamB=${encodeURIComponent(match.teamB || '')}&teamAFlag=${encodeURIComponent(match.teamAFlag || '')}&teamBFlag=${encodeURIComponent(match.teamBFlag || '')}&scoreA=${encodeURIComponent(match.scoreA || '0')}&scoreB=${encodeURIComponent(match.scoreB || '0')}`}
+          src={`/direct-player.html?url=${encodeURIComponent(sources[currentSource])}&teamA=${encodeURIComponent(match.teamA || '')}&teamB=${encodeURIComponent(match.teamB || '')}&teamAFlag=${encodeURIComponent(match.teamAFlag || '')}&teamBFlag=${encodeURIComponent(match.teamBFlag || '')}&scoreA=${encodeURIComponent(match.scoreA || '0')}&scoreB=${encodeURIComponent(match.scoreB || '0')}`}
           allowFullScreen
           className="stream-player-iframe"
         ></iframe>
@@ -196,6 +240,40 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
             </button>
           </div>
         )}
+
+        {/* Source selector */}
+        <div className="source-selector">
+          {sources.map((_, index) => (
+            <button
+              key={index}
+              className={`source-button ${currentSource === index ? 'active' : ''}`}
+              onClick={() => handleSourceChange(index)}
+            >
+              Source {index + 1}
+            </button>
+          ))}
+        </div>
+
+        {/* Suggestions overlay */}
+        {showSuggestions && (
+          <div className="suggestions-overlay">
+            <h3 className="suggestions-title">You might also like:</h3>
+            <div className="suggestions-container">
+              {suggestions.map(suggestion => (
+                <div
+                  key={suggestion.id}
+                  className="suggestion-item glass-card"
+                  onClick={() => handleSuggestionClick(suggestion.id)}
+                >
+                  <h4 className="suggestion-title">{suggestion.title}</h4>
+                  <p className="suggestion-category">
+                    {suggestion.category} • {suggestion.isLive ? 'Live' : 'On Demand'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       
       {match.isLive && (
@@ -205,7 +283,7 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
       )}
       
       <div className="stream-info">
-        <p>If stream doesn't load, try refreshing</p>
+        <p>If stream doesn't load, try another source or refresh</p>
       </div>
       
       {showPwaPrompt && (
@@ -243,5 +321,7 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
     </div>
   );
 };
+
+export default MatchStream;
 
 export default MatchStream;

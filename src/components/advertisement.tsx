@@ -13,6 +13,7 @@ interface Advertisement {
   delay_seconds?: number;
   is_active: boolean;
   click_url?: string;
+  image_url?: string;
 }
 
 export function Advertisement() {
@@ -44,9 +45,10 @@ export function Advertisement() {
           name: 'Default Banner',
           type: 'banner',
           content: `<div class="flex-1 text-center">
-            🔥 Live Football - Free HD Streams - No Login Required!
+            <span class="text-gradient">🔥 Live Football - Free HD Streams - No Login Required!</span>
           </div>`,
-          is_active: true
+          is_active: true,
+          image_url: 'https://via.placeholder.com/600x100/1e293b/38ef7d?text=StreamGoal+Premium'
         };
         
         const defaultPopupAd: Advertisement = {
@@ -65,7 +67,8 @@ export function Advertisement() {
           </div>`,
           delay_seconds: 5,
           click_url: 'https://t.me/streamgoal',
-          is_active: true
+          is_active: true,
+          image_url: 'https://via.placeholder.com/400x300/1e293b/38ef7d?text=Join+Our+Telegram'
         };
         
         setAds([defaultBannerAd, defaultPopupAd]);
@@ -117,9 +120,10 @@ export function Advertisement() {
         name: 'Default Banner',
         type: 'banner',
         content: `<div class="flex-1 text-center">
-          🔥 Live Football - Free HD Streams - No Login Required!
+          <span class="text-gradient">🔥 Live Football - Free HD Streams - No Login Required!</span>
         </div>`,
-        is_active: true
+        is_active: true,
+        image_url: 'https://via.placeholder.com/600x100/1e293b/38ef7d?text=StreamGoal+Premium'
       };
       
       setAds([defaultBannerAd]);
@@ -168,11 +172,24 @@ export function Advertisement() {
       {/* Banner ad */}
       {showBanner && currentBannerAd && (
         <div className="fixed bottom-16 left-0 right-0 bg-gradient-to-r from-blue-900/90 to-green-900/90 backdrop-blur-sm text-white py-2.5 px-4 text-sm z-10 shadow-lg flex items-center justify-between animate-in slide-in-from-bottom duration-300">
-          <div 
-            className="flex-1 cursor-pointer"
-            onClick={() => handleAdClick(currentBannerAd)}
-            dangerouslySetInnerHTML={{ __html: currentBannerAd.content }}
-          />
+          {currentBannerAd.image_url ? (
+            <div 
+              className="flex-1 cursor-pointer flex justify-center"
+              onClick={() => handleAdClick(currentBannerAd)}
+            >
+              <img 
+                src={currentBannerAd.image_url} 
+                alt="Advertisement" 
+                className="max-h-12 object-contain"
+              />
+            </div>
+          ) : (
+            <div 
+              className="flex-1 cursor-pointer"
+              onClick={() => handleAdClick(currentBannerAd)}
+              dangerouslySetInnerHTML={{ __html: currentBannerAd.content }}
+            />
+          )}
           <button 
             onClick={closeBanner}
             className="ml-2 text-gray-300 hover:text-white"
@@ -194,14 +211,33 @@ export function Advertisement() {
               <X className="h-4 w-4" />
             </button>
             
-            <div 
-              className="ad-content cursor-pointer"
-              dangerouslySetInnerHTML={{ __html: currentPopupAd.content }}
-              onClick={() => {
-                handleAdClick(currentPopupAd);
-                closePopup();
-              }}
-            />
+            {currentPopupAd.image_url ? (
+              <div 
+                className="ad-content cursor-pointer flex flex-col items-center"
+                onClick={() => {
+                  handleAdClick(currentPopupAd);
+                  closePopup();
+                }}
+              >
+                <img 
+                  src={currentPopupAd.image_url} 
+                  alt="Advertisement" 
+                  className="max-w-full rounded-lg mb-4"
+                />
+                <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-md hover:from-blue-700 hover:to-green-600 transition-colors">
+                  Learn More
+                </button>
+              </div>
+            ) : (
+              <div 
+                className="ad-content cursor-pointer"
+                dangerouslySetInnerHTML={{ __html: currentPopupAd.content }}
+                onClick={() => {
+                  handleAdClick(currentPopupAd);
+                  closePopup();
+                }}
+              />
+            )}
           </div>
         </div>
       )}

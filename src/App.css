@@ -511,3 +511,96 @@ body.ios-pwa {
     font-size: 12px;
   }
 }
+
+/* Source selector styles */
+.source-selector {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  z-index: 15;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stream-player-wrapper:hover .source-selector {
+  opacity: 1;
+}
+
+.source-button {
+  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+  color: #000;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.source-button.active {
+  box-shadow: 0 0 0 2px white;
+}
+
+/* Suggestions styles */
+.suggestions-overlay {
+  position: absolute;
+  bottom: 70px;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  padding: 20px;
+  z-index: 8;
+}
+
+.suggestions-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: white;
+}
+
+.suggestions-container {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.suggestion-item {
+  min-width: 150px;
+  background: rgba(30, 41, 59, 0.7);
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.suggestion-item:hover {
+  transform: translateY(-5px);
+}
+
+.suggestion-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.suggestion-category {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Text gradient for ads */
+.text-gradient {
+  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: bold;
+}

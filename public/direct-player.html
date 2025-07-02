@@ -30,10 +30,11 @@
       justify-content: center;
     }
     
-    iframe {
+    iframe, video {
       width: 100%;
       height: 100%;
       border: none;
+      object-fit: contain;
     }
     
     #loadingOverlay {
@@ -220,10 +221,129 @@
       flex: 1;
       font-size: 14px;
     }
+
+    #sourceSelector {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      z-index: 15;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #sourceSelector.visible {
+      opacity: 1;
+    }
+
+    .sourceButton {
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      color: #000;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .sourceButton.active {
+      box-shadow: 0 0 0 2px white;
+    }
+
+    #playButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: rgba(56, 239, 125, 0.2);
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      animation: pulse 2s infinite;
+    }
+    
+    #playButton svg {
+      width: 30px;
+      height: 30px;
+      fill: #38ef7d;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.4); }
+      70% { box-shadow: 0 0 0 20px rgba(56, 239, 125, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0); }
+    }
+
+    #suggestionsOverlay {
+      position: absolute;
+      bottom: 70px;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+      padding: 20px;
+      z-index: 8;
+      display: none;
+    }
+
+    .suggestionsTitle {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: white;
+    }
+
+    .suggestionsContainer {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+    }
+
+    .suggestionItem {
+      min-width: 150px;
+      background: rgba(30, 41, 59, 0.7);
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .suggestionItem:hover {
+      transform: translateY(-5px);
+    }
+
+    .suggestionTitle {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .suggestionCategory {
+      font-size: 12px;
+      color: #9ca3af;
+    }
   </style>
 </head>
 <body>
   <div id="playerContainer">
+    <button id="playButton" style="display: none;">
+      <svg viewBox="0 0 24 24">
+        <path d="M8 5v14l11-7z"/>
+      </svg>
+    </button>
+
     <div id="loadingOverlay">
       <div class="spinner"></div>
       <div id="loadingText">Loading your stream...</div>
@@ -265,6 +385,35 @@
       
       <button id="pwaCloseButton" class="actionButton">I'll Do This Later</button>
     </div>
+
+    <div id="sourceSelector">
+      <button class="sourceButton active" data-index="0">Source 1</button>
+      <button class="sourceButton" data-index="1">Source 2</button>
+      <button class="sourceButton" data-index="2">Source 3</button>
+      <button class="sourceButton" data-index="3">Source 4</button>
+    </div>
+
+    <div id="suggestionsOverlay">
+      <div class="suggestionsTitle">You might also like:</div>
+      <div class="suggestionsContainer">
+        <div class="suggestionItem">
+          <div class="suggestionTitle">Sports Channel</div>
+          <div class="suggestionCategory">Sports • Live</div>
+        </div>
+        <div class="suggestionItem">
+          <div class="suggestionTitle">News Network</div>
+          <div class="suggestionCategory">News • Live</div>
+        </div>
+        <div class="suggestionItem">
+          <div class="suggestionTitle">Movie Channel</div>
+          <div class="suggestionCategory">Movies • Live</div>
+        </div>
+        <div class="suggestionItem">
+          <div class="suggestionTitle">Entertainment TV</div>
+          <div class="suggestionCategory">Entertainment • Live</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -278,6 +427,10 @@
     const refreshButton = document.getElementById('refreshButton');
     const pwaPrompt = document.getElementById('pwaPrompt');
     const pwaCloseButton = document.getElementById('pwaCloseButton');
+    const playButton = document.getElementById('playButton');
+    const sourceSelector = document.getElementById('sourceSelector');
+    const sourceButtons = document.querySelectorAll('.sourceButton');
+    const suggestionsOverlay = document.getElementById('suggestionsOverlay');
     
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -286,11 +439,22 @@
     let progressInterval;
     let loadingTimeout;
     let iframe;
+    let video;
+    let currentSourceIndex = 0;
     
+    // Alternative sources for the stream
+    const alternativeSources = [
+      streamUrl,
+      streamUrl + '?source=2',
+      streamUrl + '?source=3',
+      streamUrl + '?source=4'
+    ];
+
     // Function to show loading
     function showLoading() {
       loadingOverlay.style.display = 'flex';
       errorOverlay.style.display = 'none';
+      playButton.style.display = 'none';
       
       // Clear any existing intervals
       if (progressInterval) clearInterval(progressInterval);
@@ -350,12 +514,23 @@
     function isInStandaloneMode() {
       return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     }
+
+    // Function to show suggestions
+    function showSuggestions() {
+      suggestionsOverlay.style.display = 'block';
+      setTimeout(() => {
+        suggestionsOverlay.style.display = 'none';
+      }, 10000); // Hide after 10 seconds
+    }
     
-    // Function to load stream
-    function loadStream(url) {
-      if (!url) {
-        showError('No stream URL provided');
-        return;
+    // Function to load stream using iframe
+    function loadStreamWithIframe(url) {
+      // Remove any existing elements
+      if (iframe && iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
+      }
+      if (video && video.parentNode) {
+        video.parentNode.removeChild(video);
       }
       
       showLoading();
@@ -368,6 +543,7 @@
       if (url.includes('yow.riix.link/asal/musalsal')) {
         // Direct embed approach
         iframe.src = url;
+        iframe.allow = "autoplay; fullscreen";
         
         // Add iframe to container
         playerContainer.appendChild(iframe);
@@ -375,6 +551,9 @@
         // Hide loading after a short delay
         setTimeout(() => {
           hideLoading();
+          
+          // Show suggestions after a delay
+          setTimeout(showSuggestions, 30000);
           
           // Notify parent window
           try {
@@ -386,6 +565,7 @@
       } else {
         // Standard approach for other URLs
         iframe.src = url;
+        iframe.allow = "autoplay; fullscreen";
         
         // Add iframe to container
         playerContainer.appendChild(iframe);
@@ -393,6 +573,9 @@
         // Hide loading after a short delay
         setTimeout(() => {
           hideLoading();
+          
+          // Show suggestions after a delay
+          setTimeout(showSuggestions, 30000);
           
           // Notify parent window
           try {
@@ -420,26 +603,116 @@
         showError('Stream error. Please try again.');
       });
     }
+
+    // Function to load stream using video element
+    function loadStreamWithVideo(url) {
+      // Remove any existing elements
+      if (iframe && iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
+      }
+      if (video && video.parentNode) {
+        video.parentNode.removeChild(video);
+      }
+      
+      showLoading();
+      
+      // Create video element
+      video = document.createElement('video');
+      video.controls = true;
+      video.autoplay = true;
+      video.muted = true; // Initially muted to help with autoplay
+      video.playsInline = true;
+      video.style.width = '100%';
+      video.style.height = '100%';
+      
+      // Add source
+      const source = document.createElement('source');
+      source.src = url;
+      source.type = 'video/mp4';
+      video.appendChild(source);
+      
+      // Add video to container
+      playerContainer.appendChild(video);
+      
+      // Show play button for user interaction
+      playButton.style.display = 'flex';
+      
+      // Event listeners
+      video.addEventListener('canplay', function() {
+        hideLoading();
+        
+        // Notify parent window
+        try {
+          window.parent.postMessage('videoPlaying', '*');
+        } catch (e) {
+          console.error('Error sending message to parent:', e);
+        }
+      });
+      
+      video.addEventListener('error', function() {
+        showError('Video stream error. Please try another source.');
+      });
+      
+      // Play button click
+      playButton.addEventListener('click', function() {
+        video.muted = false; // Unmute when user interacts
+        video.play().catch(function(error) {
+          console.error('Error playing video:', error);
+          showError('Browser blocked autoplay. Please try again.');
+        });
+        playButton.style.display = 'none';
+      });
+    }
+    
+    // Function to load stream (decides which method to use)
+    function loadStream(url) {
+      if (!url) {
+        showError('No stream URL provided');
+        return;
+      }
+      
+      // Update source selector
+      sourceButtons.forEach((button, index) => {
+        button.classList.toggle('active', index === currentSourceIndex);
+      });
+      
+      // Show source selector
+      sourceSelector.classList.add('visible');
+      setTimeout(() => {
+        sourceSelector.classList.remove('visible');
+      }, 3000);
+      
+      // Special handling for yow.riix.link URLs
+      if (url.includes('yow.riix.link/asal/musalsal')) {
+        // Try both methods for better compatibility
+        if (isIOS()) {
+          loadStreamWithIframe(url);
+        } else {
+          // Try iframe first, fallback to video if needed
+          loadStreamWithIframe(url);
+        }
+      } else {
+        // For other URLs, use iframe
+        loadStreamWithIframe(url);
+      }
+    }
+    
+    // Function to switch source
+    function switchSource(index) {
+      currentSourceIndex = index;
+      loadStream(alternativeSources[index]);
+    }
     
     // Start loading the stream
     if (streamUrl) {
-      loadStream(streamUrl);
+      loadStream(alternativeSources[currentSourceIndex]);
     } else {
       showError('No stream URL provided');
     }
     
     // Event listeners
     retryButton.addEventListener('click', function() {
-      // Remove existing iframe
-      if (iframe && iframe.parentNode) {
-        iframe.parentNode.removeChild(iframe);
-      }
-      
-      if (streamUrl) {
-        loadStream(streamUrl);
-      } else {
-        showError('No stream URL provided');
-      }
+      loadStream(alternativeSources[currentSourceIndex]);
     });
     
     refreshButton.addEventListener('click', function() {
@@ -450,11 +723,35 @@
       pwaPrompt.style.display = 'none';
     });
     
+    // Source selector buttons
+    sourceButtons.forEach((button, index) => {
+      button.addEventListener('click', function() {
+        switchSource(index);
+      });
+    });
+    
+    // Suggestion items
+    document.querySelectorAll('.suggestionItem').forEach(item => {
+      item.addEventListener('click', function() {
+        // In a real app, this would navigate to the suggested content
+        // For now, just hide the suggestions
+        suggestionsOverlay.style.display = 'none';
+      });
+    });
+    
     // Listen for messages from parent window
     window.addEventListener('message', function(event) {
       if (event.data === 'retry') {
         retryButton.click();
       }
+    });
+
+    // Show source selector on click/tap
+    playerContainer.addEventListener('click', function() {
+      sourceSelector.classList.add('visible');
+      setTimeout(() => {
+        sourceSelector.classList.remove('visible');
+      }, 3000);
     });
   </script>
 </body>

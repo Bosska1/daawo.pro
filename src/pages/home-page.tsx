@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, Match } from '@/lib/supabase';
 import { MatchCard } from '@/components/match-card';
-import MatchStream from '@/components/match-stream'; // Updated import
+import { MatchStream } from '@/components/match-stream';
 import { Button } from '@/components/ui/button';
 import { Tv } from 'lucide-react';
 

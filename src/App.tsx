@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Header from './components/header';
+import { Header } from './components/header'; // Changed to named import
 import Navbar from './components/navbar';
 import HomePage from './pages/home-page';
 import LivePage from './pages/live-page';
@@ -46,7 +45,7 @@ function App() {
   return (
     <Router>
       <div className="app-container">
-        <Header />
+        <Header /> {/* This remains the same */}
         
         <main className="main-content">
           <Routes>

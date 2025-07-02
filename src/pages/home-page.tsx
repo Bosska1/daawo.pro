@@ -1,13 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, Match } from '@/lib/supabase';
 import { MatchCard } from '@/components/match-card';
-import { MatchStream } from '@/components/match-stream';
+import MatchStream from '@/components/match-stream'; // Updated import
 import { Button } from '@/components/ui/button';
 import { Tv } from 'lucide-react';
 
-export function HomePage() {
+interface HomePageProps {
+  // Add any props if needed
+}
+
+export const HomePage: React.FC<HomePageProps> = () => {
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
   const [finishedMatches, setFinishedMatches] = useState<Match[]>([]);
@@ -131,7 +134,7 @@ export function HomePage() {
               <MatchCard 
                 key={match.id} 
                 match={match} 
-                onWatchClick={handleWatchClick}
+                onWatchClick={() => handleWatchClick(match)}
               />
             ))}
           </div>
@@ -166,6 +169,7 @@ export function HomePage() {
               <MatchCard 
                 key={match.id} 
                 match={match}
+                onWatchClick={() => handleWatchClick(match)}
               />
             ))}
           </div>
@@ -200,6 +204,7 @@ export function HomePage() {
               <MatchCard 
                 key={match.id} 
                 match={match}
+                onWatchClick={() => handleWatchClick(match)}
               />
             ))}
           </div>
@@ -211,4 +216,4 @@ export function HomePage() {
       </section>
     </div>
   );
-}
+};

@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Direct Stream Player</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     * {
       margin: 0;
@@ -334,6 +335,178 @@
       font-size: 12px;
       color: #9ca3af;
     }
+
+    #controlsOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent 50%, rgba(0,0,0,0.5));
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      z-index: 4;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    
+    #controlsOverlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    #topControls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+    }
+    
+    #matchInfo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+    
+    .teamInfo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 10px;
+    }
+    
+    .teamFlag {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    
+    .teamName {
+      font-size: 14px;
+      font-weight: bold;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    
+    .scoreContainer {
+      display: flex;
+      align-items: center;
+      margin: 0 15px;
+    }
+    
+    .score {
+      font-size: 20px;
+      font-weight: bold;
+      padding: 5px 10px;
+      background: rgba(56, 239, 125, 0.2);
+      border-radius: 5px;
+      min-width: 30px;
+      text-align: center;
+    }
+    
+    .scoreDivider {
+      margin: 0 5px;
+      color: #9ca3af;
+    }
+    
+    #liveIndicator {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: rgba(239, 68, 68, 0.7);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+    }
+    
+    #liveIndicator:before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background-color: #ef4444;
+      border-radius: 50%;
+      margin-right: 5px;
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    #bottomControls {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+    }
+    
+    .controlButton {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+    
+    .controlButton:hover {
+      opacity: 1;
+    }
+    
+    .controlButton svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+    
+    #fullscreenButton {
+      margin-left: auto;
+    }
+    
+    #progressBar {
+      position: absolute;
+      bottom: 70px;
+      left: 15px;
+      right: 15px;
+      height: 4px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    
+    #progressFill {
+      height: 100%;
+      background: linear-gradient(to right, #3b82f6, #38ef7d);
+      width: 0%;
+      border-radius: 2px;
+    }
+    
+    #timeDisplay {
+      position: absolute;
+      bottom: 75px;
+      left: 15px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    #durationDisplay {
+      position: absolute;
+      bottom: 75px;
+      right: 15px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+    }
   </style>
 </head>
 <body>
@@ -343,6 +516,8 @@
         <path d="M8 5v14l11-7z"/>
       </svg>
     </button>
+
+    <video id="videoElement" playsinline style="display: none;"></video>
 
     <div id="loadingOverlay">
       <div class="spinner"></div>
@@ -414,11 +589,68 @@
         </div>
       </div>
     </div>
+
+    <div id="controlsOverlay">
+      <div id="topControls">
+        <div id="matchInfo">
+          <div class="teamInfo">
+            <div id="teamAFlag" class="teamFlag"></div>
+            <div id="teamAName" class="teamName"></div>
+          </div>
+          
+          <div class="scoreContainer">
+            <div id="scoreA" class="score">0</div>
+            <div class="scoreDivider">-</div>
+            <div id="scoreB" class="score">0</div>
+          </div>
+          
+          <div class="teamInfo">
+            <div id="teamBFlag" class="teamFlag"></div>
+            <div id="teamBName" class="teamName"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="liveIndicator">LIVE</div>
+      
+      <div id="bottomControls">
+        <button id="playPauseButton" class="controlButton">
+          <svg viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </button>
+        
+        <button id="muteButton" class="controlButton">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+        </button>
+        
+        <div id="timeDisplay">0:00</div>
+        <div id="progressBar">
+          <div id="progressFill"></div>
+        </div>
+        <div id="durationDisplay">0:00</div>
+        
+        <button id="refreshButton" class="controlButton">
+          <svg viewBox="0 0 24 24">
+            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+          </svg>
+        </button>
+        
+        <button id="fullscreenButton" class="controlButton">
+          <svg viewBox="0 0 24 24">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
   </div>
 
   <script>
     // DOM Elements
     const playerContainer = document.getElementById('playerContainer');
+    const videoElement = document.getElementById('videoElement');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingProgress = document.getElementById('loadingProgress');
     const errorOverlay = document.getElementById('errorOverlay');
@@ -431,30 +663,72 @@
     const sourceSelector = document.getElementById('sourceSelector');
     const sourceButtons = document.querySelectorAll('.sourceButton');
     const suggestionsOverlay = document.getElementById('suggestionsOverlay');
+    const controlsOverlay = document.getElementById('controlsOverlay');
+    const playPauseButton = document.getElementById('playPauseButton');
+    const muteButton = document.getElementById('muteButton');
+    const fullscreenButton = document.getElementById('fullscreenButton');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const durationDisplay = document.getElementById('durationDisplay');
+    
+    // Match info elements
+    const teamAFlag = document.getElementById('teamAFlag');
+    const teamAName = document.getElementById('teamAName');
+    const teamBFlag = document.getElementById('teamBFlag');
+    const teamBName = document.getElementById('teamBName');
+    const scoreA = document.getElementById('scoreA');
+    const scoreB = document.getElementById('scoreB');
     
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const streamUrl = urlParams.get('url');
+    const teamA = urlParams.get('teamA');
+    const teamB = urlParams.get('teamB');
+    const teamAFlagValue = urlParams.get('teamAFlag');
+    const teamBFlagValue = urlParams.get('teamBFlag');
+    const scoreAValue = urlParams.get('scoreA') || '0';
+    const scoreBValue = urlParams.get('scoreB') || '0';
     
     let progressInterval;
     let loadingTimeout;
     let iframe;
-    let video;
+    let video = videoElement;
     let currentSourceIndex = 0;
+    let isPlaying = false;
+    let isMuted = false;
+    let hls;
+    let controlsTimeout;
     
     // Alternative sources for the stream
     const alternativeSources = [
       streamUrl,
-      streamUrl + '?source=2',
-      streamUrl + '?source=3',
-      streamUrl + '?source=4'
+      streamUrl ? streamUrl.replace('asal/musalsal', 'asal/musalsal/index.m3u8') : '',
+      streamUrl ? streamUrl + '?source=2' : '',
+      streamUrl ? 'https://cors-anywhere.herokuapp.com/' + streamUrl : ''
     ];
+
+    // Update match info
+    if (teamA) teamAName.textContent = teamA;
+    if (teamB) teamBName.textContent = teamB;
+    if (teamAFlagValue) teamAFlag.textContent = teamAFlagValue;
+    if (teamBFlagValue) teamBFlag.textContent = teamBFlagValue;
+    if (scoreAValue) scoreA.textContent = scoreAValue;
+    if (scoreBValue) scoreB.textContent = scoreBValue;
+
+    // Function to format time
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      seconds = Math.floor(seconds % 60);
+      return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    }
 
     // Function to show loading
     function showLoading() {
       loadingOverlay.style.display = 'flex';
       errorOverlay.style.display = 'none';
       playButton.style.display = 'none';
+      controlsOverlay.classList.remove('visible');
       
       // Clear any existing intervals
       if (progressInterval) clearInterval(progressInterval);
@@ -522,6 +796,72 @@
         suggestionsOverlay.style.display = 'none';
       }, 10000); // Hide after 10 seconds
     }
+
+    // Function to show/hide controls
+    function showControls() {
+      controlsOverlay.classList.add('visible');
+      
+      if (controlsTimeout) {
+        clearTimeout(controlsTimeout);
+      }
+      
+      controlsTimeout = setTimeout(() => {
+        if (isPlaying) {
+          controlsOverlay.classList.remove('visible');
+        }
+      }, 3000);
+    }
+
+    // Function to update play/pause button
+    function updatePlayPauseButton() {
+      if (isPlaying) {
+        playPauseButton.innerHTML = `
+          <svg viewBox="0 0 24 24">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+          </svg>
+        `;
+      } else {
+        playPauseButton.innerHTML = `
+          <svg viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        `;
+      }
+    }
+
+    // Function to update mute button
+    function updateMuteButton() {
+      if (isMuted) {
+        muteButton.innerHTML = `
+          <svg viewBox="0 0 24 24">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+          </svg>
+        `;
+      } else {
+        muteButton.innerHTML = `
+          <svg viewBox="0 0 24 24">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+        `;
+      }
+    }
+
+    // Function to update fullscreen button
+    function updateFullscreenButton() {
+      if (document.fullscreenElement) {
+        fullscreenButton.innerHTML = `
+          <svg viewBox="0 0 24 24">
+            <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+          </svg>
+        `;
+      } else {
+        fullscreenButton.innerHTML = `
+          <svg viewBox="0 0 24 24">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+          </svg>
+        `;
+      }
+    }
     
     // Function to load stream using iframe
     function loadStreamWithIframe(url) {
@@ -529,24 +869,24 @@
       if (iframe && iframe.parentNode) {
         iframe.parentNode.removeChild(iframe);
       }
-      if (video && video.parentNode) {
-        video.parentNode.removeChild(video);
-      }
       
       showLoading();
       
       // Create iframe
       iframe = document.createElement('iframe');
       iframe.allowFullscreen = true;
+      iframe.allow = "autoplay; fullscreen";
       
       // Special handling for yow.riix.link URLs
       if (url.includes('yow.riix.link/asal/musalsal')) {
         // Direct embed approach
         iframe.src = url;
-        iframe.allow = "autoplay; fullscreen";
         
         // Add iframe to container
         playerContainer.appendChild(iframe);
+        
+        // Show controls
+        showControls();
         
         // Hide loading after a short delay
         setTimeout(() => {
@@ -565,10 +905,12 @@
       } else {
         // Standard approach for other URLs
         iframe.src = url;
-        iframe.allow = "autoplay; fullscreen";
         
         // Add iframe to container
         playerContainer.appendChild(iframe);
+        
+        // Show controls
+        showControls();
         
         // Hide loading after a short delay
         setTimeout(() => {
@@ -604,64 +946,97 @@
       });
     }
 
-    // Function to load stream using video element
-    function loadStreamWithVideo(url) {
-      // Remove any existing elements
-      if (iframe && iframe.parentNode) {
-        iframe.parentNode.removeChild(iframe);
-      }
-      if (video && video.parentNode) {
-        video.parentNode.removeChild(video);
-      }
+    // Function to load stream with HLS.js
+    function loadStreamWithHLS(url) {
+      // Show video element
+      videoElement.style.display = 'block';
       
-      showLoading();
-      
-      // Create video element
-      video = document.createElement('video');
-      video.controls = true;
-      video.autoplay = true;
-      video.muted = true; // Initially muted to help with autoplay
-      video.playsInline = true;
-      video.style.width = '100%';
-      video.style.height = '100%';
-      
-      // Add source
-      const source = document.createElement('source');
-      source.src = url;
-      source.type = 'video/mp4';
-      video.appendChild(source);
-      
-      // Add video to container
-      playerContainer.appendChild(video);
-      
-      // Show play button for user interaction
-      playButton.style.display = 'flex';
-      
-      // Event listeners
-      video.addEventListener('canplay', function() {
-        hideLoading();
-        
-        // Notify parent window
-        try {
-          window.parent.postMessage('videoPlaying', '*');
-        } catch (e) {
-          console.error('Error sending message to parent:', e);
+      if (Hls.isSupported()) {
+        if (hls) {
+          hls.destroy();
         }
-      });
-      
-      video.addEventListener('error', function() {
-        showError('Video stream error. Please try another source.');
-      });
-      
-      // Play button click
-      playButton.addEventListener('click', function() {
-        video.muted = false; // Unmute when user interacts
-        video.play().catch(function(error) {
-          console.error('Error playing video:', error);
-          showError('Browser blocked autoplay. Please try again.');
+        
+        hls = new Hls({
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          manifestLoadingTimeOut: 10000,
+          manifestLoadingMaxRetry: 3,
+          levelLoadingTimeOut: 10000,
+          levelLoadingMaxRetry: 3,
+          fragLoadingTimeOut: 10000,
+          fragLoadingMaxRetry: 3,
+          xhrSetup: function(xhr) {
+            xhr.setRequestHeader('User-Agent', 'ExoPlayer');
+            xhr.setRequestHeader('Origin', 'https://yow.riix.link');
+            xhr.setRequestHeader('Referer', 'https://yow.riix.link/');
+          }
         });
-        playButton.style.display = 'none';
-      });
+        
+        hls.loadSource(url);
+        hls.attachMedia(videoElement);
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          playVideo();
+        });
+        
+        hls.on(Hls.Events.ERROR, function(event, data) {
+          if (data.fatal) {
+            switch(data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.error('Network error:', data);
+                // Try to recover network error
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.error('Media error:', data);
+                // Try to recover media error
+                hls.recoverMediaError();
+                break;
+              default:
+                // Cannot recover
+                console.error('Fatal error:', data);
+                showError('Stream error. Please try another source.');
+                break;
+            }
+          }
+        });
+      } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS support (Safari)
+        videoElement.src = url;
+        playVideo();
+      } else {
+        showError('Your browser does not support HLS streams.');
+      }
+    }
+
+    // Function to play video
+    function playVideo() {
+      videoElement.play()
+        .then(() => {
+          hideLoading();
+          playButton.style.display = 'none';
+          isPlaying = true;
+          updatePlayPauseButton();
+          showControls();
+          
+          // Notify parent window
+          try {
+            window.parent.postMessage('videoPlaying', '*');
+          } catch (e) {
+            console.error('Error sending message to parent:', e);
+          }
+        })
+        .catch(error => {
+          console.error('Error playing video:', error);
+          
+          if (error.name === 'NotAllowedError') {
+            // Autoplay was prevented
+            hideLoading();
+            playButton.style.display = 'flex';
+          } else {
+            showError('Stream error. Please try again.');
+          }
+        });
     }
     
     // Function to load stream (decides which method to use)
@@ -685,12 +1060,19 @@
       // Special handling for yow.riix.link URLs
       if (url.includes('yow.riix.link/asal/musalsal')) {
         // Try both methods for better compatibility
-        if (isIOS()) {
+        if (url.includes('.m3u8')) {
+          // If it's an HLS stream, use HLS.js
+          loadStreamWithHLS(url);
+        } else if (isIOS()) {
+          // On iOS, use iframe for better compatibility
           loadStreamWithIframe(url);
         } else {
-          // Try iframe first, fallback to video if needed
+          // On other platforms, try iframe first
           loadStreamWithIframe(url);
         }
+      } else if (url.includes('.m3u8')) {
+        // If it's an HLS stream, use HLS.js
+        loadStreamWithHLS(url);
       } else {
         // For other URLs, use iframe
         loadStreamWithIframe(url);
@@ -739,20 +1121,118 @@
       });
     });
     
+    // Play button click
+    playButton.addEventListener('click', function() {
+      if (videoElement.paused) {
+        videoElement.play()
+          .then(() => {
+            playButton.style.display = 'none';
+            isPlaying = true;
+            updatePlayPauseButton();
+            showControls();
+          })
+          .catch(error => {
+            console.error('Error playing video:', error);
+            showError('Browser blocked autoplay. Please try again.');
+          });
+      }
+    });
+
+    // Video event listeners
+    videoElement.addEventListener('playing', function() {
+      hideLoading();
+      playButton.style.display = 'none';
+      isPlaying = true;
+      updatePlayPauseButton();
+    });
+    
+    videoElement.addEventListener('pause', function() {
+      isPlaying = false;
+      updatePlayPauseButton();
+    });
+    
+    videoElement.addEventListener('timeupdate', function() {
+      if (videoElement.duration) {
+        const percent = (videoElement.currentTime / videoElement.duration) * 100;
+        progressFill.style.width = `${percent}%`;
+        timeDisplay.textContent = formatTime(videoElement.currentTime);
+        durationDisplay.textContent = formatTime(videoElement.duration);
+      }
+    });
+    
+    videoElement.addEventListener('error', function() {
+      console.error('Video error:', videoElement.error);
+      showError('Stream error. Please try another source.');
+    });
+
+    // Control button event listeners
+    playPauseButton.addEventListener('click', function() {
+      if (videoElement.paused) {
+        videoElement.play()
+          .then(() => {
+            isPlaying = true;
+            updatePlayPauseButton();
+          })
+          .catch(error => {
+            console.error('Error playing video:', error);
+            showError('Browser blocked playback. Please try again.');
+          });
+      } else {
+        videoElement.pause();
+        isPlaying = false;
+        updatePlayPauseButton();
+      }
+    });
+    
+    muteButton.addEventListener('click', function() {
+      videoElement.muted = !videoElement.muted;
+      isMuted = videoElement.muted;
+      updateMuteButton();
+    });
+    
+    fullscreenButton.addEventListener('click', function() {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        playerContainer.requestFullscreen();
+      }
+    });
+
+    // Fullscreen change event
+    document.addEventListener('fullscreenchange', function() {
+      updateFullscreenButton();
+    });
+
+    // Progress bar click event
+    progressBar.addEventListener('click', function(e) {
+      if (videoElement.duration) {
+        const rect = progressBar.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        videoElement.currentTime = pos * videoElement.duration;
+      }
+    });
+    
     // Listen for messages from parent window
     window.addEventListener('message', function(event) {
       if (event.data === 'retry') {
         retryButton.click();
+      } else if (event.data && typeof event.data === 'object' && event.data.type === 'sourceChange') {
+        switchSource(event.data.index);
       }
     });
 
     // Show source selector on click/tap
     playerContainer.addEventListener('click', function() {
       sourceSelector.classList.add('visible');
+      showControls();
       setTimeout(() => {
         sourceSelector.classList.remove('visible');
       }, 3000);
     });
+
+    // Show/hide controls on mousemove/touch
+    playerContainer.addEventListener('mousemove', showControls);
+    playerContainer.addEventListener('touchstart', showControls);
   </script>
 </body>
 </html>

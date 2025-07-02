@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Inline FloatingActionButton component since we're having issues creating a separate file
+// Inline FloatingActionButton component
 const FloatingActionButton = ({
   onRefresh,
   onFullscreen,
@@ -122,7 +121,6 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
     
     // Show PWA prompt for iOS users who haven't installed the PWA
     if (isIOSDevice && !isInStandaloneMode) {
-      // Check if we've shown the prompt before
       const hasShownPwaPrompt = localStorage.getItem('hasShownPwaPrompt');
       if (!hasShownPwaPrompt) {
         setShowPwaPrompt(true);
@@ -136,10 +134,8 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
         setIsLoading(false);
         setError(null);
         
-        // Show suggestions after a delay
         setTimeout(() => {
           setShowSuggestions(true);
-          // Hide after 10 seconds
           setTimeout(() => {
             setShowSuggestions(false);
           }, 10000);
@@ -147,7 +143,6 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
       } else if (event.data === 'videoError') {
         setIsLoading(false);
         
-        // Auto-try next source if we haven't tried too many times
         if (retryCount < 3) {
           setRetryCount(prev => prev + 1);
           const nextSource = (currentSource + 1) % sources.length;
@@ -155,14 +150,11 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
           handleSourceChange(nextSource);
         } else {
           setError('Stream error. Please try another source.');
-          
-          // Show PWA prompt for iOS users when there's an error
           if (isIOSDevice && !isInStandaloneMode) {
             setShowPwaPrompt(true);
           }
         }
-      } else if (event.data && typeof event.data === 'object' && event.data.type === 'sourceChange') {
-        // Handle source change from iframe
+      } else if (event.data?.type === 'sourceChange') {
         setCurrentSource(event.data.index);
       }
     };
@@ -179,18 +171,13 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
   };
   
   const handleRefresh = () => {
-    if (iframeRef.current) {
-      // Send message to iframe to retry
-      iframeRef.current.contentWindow?.postMessage('retry', '*');
-    }
+    iframeRef.current?.contentWindow?.postMessage('retry', '*');
   };
   
   const handleFullscreen = () => {
-    if (iframeRef.current) {
-      iframeRef.current.requestFullscreen().catch(err => {
-        console.error('Error attempting to enable fullscreen:', err);
-      });
-    }
+    iframeRef.current?.requestFullscreen().catch(err => {
+      console.error('Error attempting to enable fullscreen:', err);
+    });
   };
   
   const handleClosePwaPrompt = () => {
@@ -199,20 +186,14 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
 
   const handleSourceChange = (index: number) => {
     setCurrentSource(index);
-    setRetryCount(0); // Reset retry count when manually changing source
-    if (iframeRef.current) {
-      // Send message to iframe to change source
-      iframeRef.current.contentWindow?.postMessage({ type: 'sourceChange', index }, '*');
-    }
+    setRetryCount(0);
+    iframeRef.current?.contentWindow?.postMessage({ type: 'sourceChange', index }, '*');
   };
 
   const handleSuggestionClick = (id: string) => {
-    // In a real app, this would navigate to the suggested content
-    // For now, just hide the suggestions
     setShowSuggestions(false);
   };
 
-  // For iOS devices that haven't installed the PWA, show a prompt
   if (isIOS && !isPWA) {
     return (
       <div className="match-stream-container">
@@ -296,7 +277,7 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
           src={`/direct-player.html?url=${encodeURIComponent(sources[currentSource])}&teamA=${encodeURIComponent(match.teamA || '')}&teamB=${encodeURIComponent(match.teamB || '')}&teamAFlag=${encodeURIComponent(match.teamAFlag || '')}&teamBFlag=${encodeURIComponent(match.teamBFlag || '')}&scoreA=${encodeURIComponent(match.scoreA || '0')}&scoreB=${encodeURIComponent(match.scoreB || '0')}`}
           allowFullScreen
           className="stream-player-iframe"
-        ></iframe>
+        />
         
         {isLoading && (
           <div className="stream-loading-overlay">
@@ -315,7 +296,6 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
           </div>
         )}
 
-        {/* Source selector */}
         <div className="source-selector">
           {sources.map((_, index) => (
             <button
@@ -328,7 +308,6 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
           ))}
         </div>
 
-        {/* Suggestions overlay */}
         {showSuggestions && (
           <div className="suggestions-overlay">
             <h3 className="suggestions-title">You might also like:</h3>
@@ -360,7 +339,6 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
         <p>If stream doesn't load, try another source or refresh</p>
       </div>
       
-      {/* Floating Action Button */}
       <FloatingActionButton
         onRefresh={handleRefresh}
         onFullscreen={handleFullscreen}
@@ -404,11 +382,5 @@ const MatchStream: React.FC<MatchStreamProps> = ({ match }) => {
     </div>
   );
 };
-
-export default MatchStream;
-
-export default MatchStream;
-
-export default MatchStream;
 
 export default MatchStream;

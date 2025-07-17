@@ -66,6 +66,12 @@ export function Header() {
                   Live TV
                 </Button>
               </Link>
+              
+              <Link to="/admin">
+                <Button variant="outline" size="sm" className="border-gray-700 hover:bg-gray-800">
+                  Admin
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -128,13 +134,6 @@ export function Header() {
                 Live Matches
               </Link>
               <Link 
-                to="/matches" 
-                className="px-3 py-2 rounded-md hover:bg-gray-900 transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                All Matches
-              </Link>
-              <Link 
                 to="/tv" 
                 className="px-3 py-2 rounded-md hover:bg-gray-900 transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -147,6 +146,13 @@ export function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Favorites
+              </Link>
+              <Link 
+                to="/admin" 
+                className="px-3 py-2 rounded-md hover:bg-gray-900 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Admin Panel
               </Link>
             </nav>
           </div>

@@ -5,6 +5,8 @@ import Navbar from './components/navbar';
 import HomePage from './pages/home-page';
 import LivePage from './pages/live-page';
 import FavoritesPage from './pages/favorites-page';
+import { LiveTVsPage } from './pages/live-tvs-page';
+import { AdminPage } from './pages/admin-page';
 import PWAInstallPrompt from './components/pwa-install-prompt';
 import './App.css';
 
@@ -51,9 +53,9 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/live" element={<LivePage />} />
+            <Route path="/tv" element={<LiveTVsPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
-            <Route path="/upcoming" element={<Navigate to="/live" replace />} />
-            <Route path="/finished" element={<Navigate to="/live" replace />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
